@@ -49,7 +49,11 @@ app.get('/robots.txt', (_, res) => res.type('text/plain').send('User-agent: *\nA
 app.get('/sitemap.xml', (_, res) => res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
   + ['/', '/vilkaar.html', '/privatliv.html'].map(p => '<url><loc>' + SITE() + p + '</loc></url>').join('') + '</urlset>'));
 app.use((req, res, next) => { if (/^\/(chat|buy|demo-pay|operator|admin)\.html$|^\/api\//.test(req.path)) res.set('X-Robots-Tag', 'noindex'); next(); });
-app.use(express.static(path.join(__dirname, 'public')));
+// Kun disse sider serveres (virker både med og uden public-mappe; udsætter aldrig server.js eller data)
+const PAGES = ['index', 'chat', 'buy', 'demo-pay', 'operator', 'admin', 'vilkaar', 'privatliv'];
+const PUB = fs.existsSync(path.join(__dirname, 'public', 'index.html')) ? path.join(__dirname, 'public') : __dirname;
+app.get(['/', ...PAGES.map(p => '/' + p + '.html')], (req, res) =>
+  res.sendFile(path.join(PUB, req.path === '/' ? 'index.html' : req.path.slice(1))));
 
 app.get('/api/packages', (_, res) => res.json(PACKAGES));
 app.get('/api/credits/:id', (req, res) => res.json({ credits: customer(req.params.id).credits }));
