@@ -44,6 +44,11 @@ app.post('/api/quickpay/callback', express.raw({ type: '*/*' }), (req, res) => {
 });
 
 app.use(express.json());
+const SITE = () => process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '';
+app.get('/robots.txt', (_, res) => res.type('text/plain').send('User-agent: *\nAllow: /\nDisallow: /api/\n' + (SITE() ? 'Sitemap: ' + SITE() + '/sitemap.xml\n' : '')));
+app.get('/sitemap.xml', (_, res) => res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+  + ['/', '/vilkaar.html', '/privatliv.html'].map(p => '<url><loc>' + SITE() + p + '</loc></url>').join('') + '</urlset>'));
+app.use((req, res, next) => { if (/^\/(chat|buy|demo-pay|operator|admin)\.html$|^\/api\//.test(req.path)) res.set('X-Robots-Tag', 'noindex'); next(); });
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/packages', (_, res) => res.json(PACKAGES));

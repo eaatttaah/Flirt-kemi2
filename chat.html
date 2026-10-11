@@ -1,0 +1,24 @@
+<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#404952;color:#f2f4f6;font:15px/1.5 Arial,Helvetica,sans-serif}main{max-width:560px;margin:24px auto;padding:0 16px}
+.card{background:#30383f;border-top:2px solid #2474ac;padding:20px}.notice{background:#3a434b;border-left:4px solid #e8b522;padding:10px 14px;margin-bottom:14px;font-size:13px}
+input,textarea{width:100%;background:#3a434b;border:1px solid #59636c;color:#fff;padding:10px;font-size:15px;margin:6px 0}button{border:0;border-radius:5px;background:#3394d5;color:#fff;padding:11px 16px;font-size:15px;cursor:pointer}
+#msgs{height:340px;overflow:auto;background:#262d33;padding:10px;margin:10px 0}.m{margin:6px 0;display:flex}.m span{padding:8px 12px;border-radius:12px;max-width:80%;white-space:pre-wrap}
+.c{justify-content:flex-end}.c span{background:#477aa7}.o span{background:#48515a}.bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}a{color:#7cc4ff}#err{color:#ffb3ab;min-height:20px}.row{display:flex;gap:8px}.row button{width:90px}</style></head><body><main>
+<div class="notice"><b>Vigtigt:</b> Profilen JomfruMaria er fiktiv og styres af vores medarbejdere (moderatorer). Du skriver ikke med en rigtig person. Kun for personer over 18 år.</div>
+<div class="card" id="reg"><h2 style="margin-top:0">Opret dig</h2><input id="n" placeholder="Dit fornavn" maxlength="40"><input id="ci" placeholder="By (valgfrit)" maxlength="40"><button onclick="reg()">Start chat</button><div id="err"></div></div>
+<div class="card" id="chat" hidden><div class="bar"><b id="who"></b><span><span id="cr"></span> kreditter · <a href="/buy.html">Køb kreditter</a></span></div>
+<div id="msgs"></div><div class="row"><textarea id="t" rows="2" placeholder="Skriv en besked ..." style="margin:0"></textarea><button onclick="send()">Send</button></div>
+<small id="cost"></small><div id="err2" style="color:#ffb3ab"></div><p><a href="#" onclick="del();return false">Slet mine data og min profil</a></p></div></main>
+<script>
+const $=i=>document.getElementById(i),esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let id=localStorage.getItem('cid'),n=-1;
+async function reg(){const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('n').value,city:$('ci').value})});const j=await r.json();if(!r.ok)return $('err').textContent=j.error;localStorage.setItem('cid',id=j.id);poll()}
+async function poll(){if(!id){$('reg').hidden=false;$('chat').hidden=true;return}
+ const r=await fetch('/api/chat/'+id);if(r.status===404){localStorage.removeItem('cid');id=null;return poll()}
+ const d=await r.json();$('reg').hidden=true;$('chat').hidden=false;$('who').textContent='JomfruMaria (fiktiv profil)';$('cr').textContent=d.credits;$('cost').textContent='1 besked = '+d.cost+' kreditter';
+ if(d.msgs.length!==n){n=d.msgs.length;$('msgs').innerHTML=d.msgs.map(m=>'<div class="m '+(m.from==='c'?'c':'o')+'"><span>'+esc(m.text)+'</span></div>').join('');$('msgs').scrollTop=1e9}}
+async function send(){const v=$('t').value.trim();if(!v)return;const r=await fetch('/api/chat/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:v})});
+ if(r.ok){$('t').value='';$('err2').textContent=''}else $('err2').textContent=(await r.json()).error;poll()}
+async function del(){if(!confirm('Alle dine data slettes permanent. Fortsæt?'))return;await fetch('/api/me/'+id,{method:'DELETE'});localStorage.removeItem('cid');id=null;poll()}
+poll();setInterval(poll,2000);
+</script></body></html>

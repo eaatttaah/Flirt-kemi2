@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#404952;color:#f2f4f6;font:14px/1.5 Arial,sans-serif}main{max-width:820px;margin:0 auto;padding:20px}
+.card{background:#30383f;border-top:2px solid #2474ac;padding:16px;margin-bottom:18px}h2{margin:0 0 10px}button{border:0;border-radius:4px;background:#3394d5;color:#fff;padding:7px 12px;cursor:pointer}
+.red{background:#b44}input{background:#3a434b;border:1px solid #59636c;color:#fff;padding:8px;margin-right:6px}a{color:#7cc4ff}table{width:100%;border-collapse:collapse}td,th{padding:5px 8px;border-bottom:1px solid #48515a;text-align:left}h3{margin:14px 0 6px;font-size:14px}.m{padding:3px 8px;margin:3px 0;background:#3a434b;border-radius:6px}.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #48515a}</style></head><body><main>
+<p><a href="/operator.html">← Back to operator panel</a></p>
+<div class="card"><h2>Panic Room</h2><div id="panic">Loading…</div></div>
+<div class="card"><h2>Operator activity</h2>
+<p>From <input type="date" id="df"> To <input type="date" id="dt"> <select id="opf"><option value="">All operators</option></select> <button onclick="loadAct()">Show</button> <small id="ret"></small></p>
+<h3>Messages per operator</h3><div id="sumBox"></div><h3>Messages per day</h3><div id="dayBox"></div><h3>Message times (latest 200)</h3><div id="detBox" style="max-height:300px;overflow:auto"></div></div>
+<div class="card"><h2>Operators</h2><div id="ops"></div><p><input id="u" placeholder="username"><input id="p" type="password" placeholder="password (min 8)"><button onclick="addOp()">Add operator</button></p></div></main>
+<script>
+const T=sessionStorage.getItem('t');if(!T)location.href='/operator.html';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const api=(p,m='GET',b)=>fetch('/api/op'+p,{method:m,headers:{'x-op-token':T,'Content-Type':'application/json'},body:b&&JSON.stringify(b)}).then(async r=>{if(r.status===401)location.href='/operator.html';if(r.status===403){document.body.innerHTML='<p style="padding:20px">Admin access only. <a href="/operator.html">Back</a></p>';throw 0}return r.json()});
+async function load(){
+ const pn=await api('/admin/panic');document.getElementById('panic').innerHTML=pn.length?pn.map(c=>'<div style="margin-bottom:14px"><b>'+esc(c.name)+'</b> <button onclick="rel(\''+c.id+'\',0)">Release to queue</button> <button class="red" onclick="rel(\''+c.id+'\',1)">Close</button>'+c.msgs.map(m=>'<div class="m" style="text-align:'+(m.from==='m'?'right':'left')+'">'+esc(m.text)+'</div>').join('')+'</div>').join(''):'No conversations in Panic Room.';
+ const o=await api('/admin/operators');if(opf.options.length<2)o.forEach(x=>opf.add(new Option(x.username,x.username)));document.getElementById('ops').innerHTML=o.map(x=>'<div class="row"><span>'+esc(x.username)+' <small>('+x.role+')</small></span>'+(x.role==='admin'?'':'<button class="red" onclick="delOp(\''+esc(x.username)+'\')">Delete</button>')+'</div>').join('')}
+const ymd=d=>d.toLocaleDateString('sv-SE'),fmt=a=>new Date(a).toLocaleString('da-DK',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+df.value=ymd(new Date(Date.now()-29*864e5));dt.value=ymd(new Date());
+async function loadAct(){
+ const from=new Date(df.value+'T00:00:00').toISOString(),to=new Date(dt.value+'T23:59:59.999').toISOString();
+ const r=await api('/admin/activity?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to)+(opf.value?'&op='+encodeURIComponent(opf.value):''));
+ ret.textContent='Records are kept for '+r.retention_days+' days.';
+ const byOp={},byDay={};
+ r.entries.forEach(([o,a])=>{const b=byOp[o]=byOp[o]||{n:0,last:a};b.n++;if(a>b.last)b.last=a;const k=ymd(new Date(a)),d=byDay[k]=byDay[k]||{};d[o]=(d[o]||0)+1});
+ const tbl=(h,rows)=>rows.length?'<table><tr>'+h.map(x=>'<th>'+x+'</th>').join('')+'</tr>'+rows.map(x=>'<tr>'+x.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')+'</table>':'No messages in this period.';
+ sumBox.innerHTML=tbl(['Operator','Messages','Last message'],Object.entries(byOp).sort((a,b)=>b[1].n-a[1].n).map(([o,b])=>[esc(o),b.n,fmt(b.last)]));
+ dayBox.innerHTML=tbl(['Date','Total','Per operator'],Object.keys(byDay).sort().reverse().map(k=>[k,Object.values(byDay[k]).reduce((x,y)=>x+y,0),Object.entries(byDay[k]).map(([o,n])=>esc(o)+': '+n).join(', ')]));
+ detBox.innerHTML=tbl(['Date and time','Operator'],r.entries.slice(-200).reverse().map(([o,a])=>[fmt(a),esc(o)]))}
+async function rel(id,close){await api('/admin/release','POST',{id,close});load()}
+async function delOp(u){if(confirm('Delete '+u+'?')){await api('/admin/operators/'+encodeURIComponent(u),'DELETE');load()}}
+async function addOp(){const r=await api('/admin/operators','POST',{username:u.value,password:p.value});if(r.error)return alert(r.error);u.value=p.value='';load()}
+load();loadAct();setInterval(load,5000);
+</script></body></html>
