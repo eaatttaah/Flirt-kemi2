@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: mindate-chat
+    runtime: node
+    plan: starter          # kalıcı disk için ücretli plan şart
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false        # Render panelinde sizden istenir
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1

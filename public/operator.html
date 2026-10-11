@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Moderator Chat – UI Prototype</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#404952;color:#f2f4f6;overflow:auto;font-size:12px}
+.top{height:54px;background:#293139;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid #505962}
+.logo{width:125px;font-size:20px;font-weight:700;line-height:22px;color:#111;background:#333a40;padding:7px 12px;box-shadow:0 4px 12px #0005}
+.logo span{color:#ff1010}.hamb{font-size:24px;margin-left:105px;color:#b9c0c6}.agent{margin-left:auto;font-size:17px;color:#c7ccd1}
+.layout{min-height:calc(100vh - 54px);display:grid;grid-template-columns:220px minmax(0,1fr) 245px}
+.side{background:#30383f;border-right:1px solid #56606a;padding-top:10px}
+.profile{height:58px;border-bottom:1px solid #59636c;display:flex;align-items:center;padding:0 15px;gap:13px;font-size:20px}
+.avatar{width:47px;height:47px;border-radius:50%;background:linear-gradient(135deg,#aaa,#444);border:3px solid #eee}
+.nav a{display:block;padding:10px 15px;color:#d8dde1;text-decoration:none;font-size:16px}.nav a:hover,.nav a.active{background:#3e74a4}
+.main{min-width:0;display:flex;flex-direction:column}.crumb{height:50px;padding:11px 22px;font-size:18px}.crumb small{float:right;color:#ddd}.crumb b{color:#fff}.crumb .blue{color:#1388ff}
+.columns{display:grid;grid-template-columns:220px minmax(420px,1fr);gap:10px;padding:0 10px 10px;align-items:start}
+.customer,.chat,.details{background:#30383f;border-top:2px solid #2474ac;min-height:0;box-shadow:0 2px 6px #0004}
+.customer{overflow:visible}.panel-title{padding:13px 17px;font-size:16px;border-bottom:1px solid #4f5962}
+.customer-body{padding:12px;text-align:center}.customer-img{width:82px;height:82px;border-radius:50%;border:4px solid #bfc6cc;margin:20px auto;background:linear-gradient(135deg,#d5d5d5,#747474);display:flex;align-items:center;justify-content:center;color:#333;font-size:42px}
+.badge{display:inline-block;background:#e8b522;color:white;border-radius:20px;padding:9px 14px;font-weight:bold}.facts{text-align:left;line-height:1.55;margin-top:12px;color:#e0e4e7}.facts strong{color:#fff}
+.chat{display:flex;flex-direction:column}.chat-head{padding:12px 18px;border-bottom:1px solid #4d5760;display:flex;align-items:center;gap:7px}.chat-head .domain{color:#ff4141}.actions{margin-left:auto;display:flex;gap:8px}.btn{border:0;border-radius:5px;padding:9px 14px;color:white;font-size:15px;cursor:pointer}.bluebtn{background:#3394d5}.redbtn{background:#ed5144}.hold{background:#ed5144}.logs{height:165px;overflow:auto;padding:12px 16px}.log{border-bottom:1px solid #505a62;padding:10px 34px 10px 48px;position:relative;line-height:1.55}.pin{position:absolute;left:10px;color:#caff00;font-size:20px}.edit{float:right;color:#268dff}.delete{float:right;color:#ff2525;margin-left:15px}.notes{padding:0 16px 10px;color:#1689ff;display:flex;justify-content:space-between;align-items:center}.top-note-btn{background:none;border:0;color:#1689ff;font-size:15px;cursor:pointer;padding:0}.compose{margin:0 10px;border:2px solid #4e95c9;border-radius:5px;display:flex;min-height:120px}.compose textarea{flex:1;background:#3a434b;border:0;resize:none;color:white;padding:10px;font-size:14px;outline:none}.send{width:85px;background:#477aa7;border:0;color:white;font-size:18px;cursor:pointer}.bottom{display:flex;align-items:center;padding:10px 14px;gap:14px}.iconbtn{background:#4d86b9;border:0;color:white;padding:11px 15px;border-radius:5px}.count{background:#151a1e;padding:10px 14px}.quit{background:#ee5043;color:white;border:0;border-radius:5px;padding:10px 17px;font-size:18px}.queue{margin-left:auto;text-align:right;font-size:14px}.customer-msg{margin:0 16px;background:#ff0808;padding:10px 12px;border-radius:5px;font-weight:bold}
+.details{overflow:visible}.details .body{padding:18px;text-align:left}.detail-photo{width:100px;height:100px;border-radius:50%;border:3px solid #ddd;background:linear-gradient(135deg,#ddd,#777);float:right;margin:0 0 10px 10px}.detail-line{margin:7px 0;line-height:1.35}.newlogs{border:1px solid #d2b500;color:#e2c500;background:transparent;padding:11px 15px;border-radius:5px;font-size:15px;cursor:pointer;position:relative;z-index:20;pointer-events:auto}
+
+
+.profile-log-panel{padding:8px 8px 16px}
+.profile-log-panel .newlogs{display:block;margin:0 auto 8px;font-size:11px;padding:7px 10px}
+.log-category{background:#48515a;border-radius:5px;margin:4px 0;overflow:hidden}
+.log-category .cat-head{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;font-size:11px;font-weight:700}
+.log-category .cat-body{padding:0 8px 7px;font-size:10px;color:#f2f4f6}
+.log-entry{border-top:1px solid rgba(255,255,255,.14);padding:6px 0;line-height:1.3}
+.log-entry .meta{font-size:8px;color:#d5dbe0;margin-top:3px}
+.log-category.empty .cat-body{display:none}
+.log-category .cat-head .minus{font-size:15px;color:#fff}
+.customer .profile-log-panel,.details .profile-log-panel{max-height:none}
+
+.note-modal.log-modal{width:min(500px,92vw)}
+.log-modal .party-line{display:flex;justify-content:space-between;font-size:12px;margin-bottom:16px}
+.log-modal select{width:100%;box-sizing:border-box;background:#30383f;color:#fff;border:0;border-bottom:1px solid #899199;padding:10px 4px;font-size:15px;outline:none}
+.log-modal textarea{height:145px;margin-top:12px;box-sizing:border-box}
+.log-count{border-bottom:1px solid #69727a;padding:10px 0;margin-bottom:0;color:#fff}
+
+.note-overlay{display:none;position:fixed;z-index:99999;pointer-events:auto;inset:0;background:rgba(0,0,0,.72);z-index:1000;align-items:center;justify-content:center}
+.note-modal{width:min(680px,92vw);background:#30383f;border-radius:3px;padding:28px;color:#f2f4f6;box-shadow:0 12px 40px #0009}
+.note-modal h2{margin:0 0 22px;font-size:28px}
+.note-divider{height:1px;background:#69727a;margin-bottom:23px}
+.note-modal textarea{width:100%;height:180px;background:#30383f;border:1px solid #c6ccd0;color:#fff;padding:16px;font-size:18px;resize:vertical;outline:none}
+.note-options{margin:22px 0;font-size:18px}
+.note-options label{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.note-options input[type=checkbox]{width:19px;height:19px}
+.note-options input[type=date]{margin-left:6px;background:#30383f;color:#fff;border:1px solid #899199;padding:8px;font-size:15px}
+.note-buttons{border-top:1px solid #69727a;padding-top:23px;display:grid;gap:11px}
+.note-save{background:#20262b;color:#fff;border:0;padding:15px;font-size:18px;cursor:pointer}
+.note-close{background:transparent;color:#fff;border:1px solid #c6ccd0;padding:14px;font-size:18px;cursor:pointer}
+
+@media(max-width:1100px){.layout{grid-template-columns:240px 1fr}.details{display:none}.columns{grid-template-columns:260px 1fr}.hamb{margin-left:115px}}
+@media(max-width:800px){.layout{grid-template-columns:0 1fr}.side{display:none}.columns{grid-template-columns:1fr}.customer{display:none}.hamb{margin-left:10px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="logo">Mindate<br><span>Operator</span></div><div class="hamb">☰</div><div class="agent">Agent&nbsp;&nbsp; ↪</div></header>
+<div class="layout">
+<aside class="side">
+  <div class="profile"><div class="avatar"></div><b>Moderator</b></div>
+  <nav class="nav">
+    <a href="#" class="active">◉ Dashboard</a><a href="#">◉ Chat Statistics</a><a href="#">● Affiliates</a><a href="#">▣ My Statistics</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="crumb"><b>Live Room</b><small><span class="blue">Home</span> / <span class="blue">Chats</span> / Live Room</small></div>
+  <div class="columns">
+    <section class="customer">
+      <div class="panel-title">Customer Details</div>
+      <div class="customer-body">
+        <div class="customer-img">👤</div><span class="badge">● 1050 credits</span>
+        <div class="facts">
+          <div><strong>Name:</strong> Example Customer</div>
+          <div><strong>City:</strong> København</div>
+          <div><strong>Relation Status:</strong> Single</div>
+          <div><strong>Profession:</strong> Professional</div>
+          <div><strong>Children:</strong> 0</div>
+        </div>
+      </div>
+      <div class="profile-log-panel">
+        <button class="newlogs" type="button" onclick="openProfileLog('man')">🔖 ADD NEW LOGS</button>
+        <div id="manLogs"></div>
+      </div>
+    </section>
+    <section class="chat">
+      <div class="chat-head"><div><b>Chats & Messages</b><br>Domain: <span class="domain">example.dk</span></div>
+        <div class="actions"><button class="btn bluebtn">Assign To ▾</button><button class="btn redbtn" onclick="panic()">Add to Panicroom</button><button class="btn hold" onclick="hold()">Hold</button></div>
+      </div>
+      <div class="logs">
+        <div class="log"><span class="pin">📌</span><b>07 Sep 26<br>14:22</b> &nbsp; Customer note / conversation history shown here.<span class="edit">✎</span><span class="delete">▮</span></div>
+        <div class="log"><span class="pin">📌</span><b>11 Aug 26<br>05:46</b> &nbsp; Previous conversation log and moderator note.<span class="edit">✎</span><span class="delete">▮</span></div>
+      </div>
+      <div class="notes"><span>View Old Top Notes</span><button type="button" class="top-note-btn" onclick="openNoteModal()">+ Add Top Notes</button></div>
+      <div id="hist" style="height:150px;overflow:auto;padding:8px 16px"></div>
+      <div class="compose"><textarea id="msg" placeholder="Type Message ..."></textarea><button class="send" onclick="send()">Send</button></div>
+      <div class="bottom"><button class="iconbtn">📷</button><div><b>In</b><div class="count">169</div></div><div><b>Out</b><div class="count">265</div></div><button class="quit">Quit<br>Chat</button><div class="queue"><b>Messages in queue: 4</b><br>Conversation Started: 23 May 2026, 09:24 AM</div></div>
+      <div class="customer-msg">Customer: Example message / newest incoming message</div>
+    </section>
+  </div>
+</main>
+<section class="details">
+  <div class="panel-title">Escort Details</div>
+  <div class="body">
+    <div class="detail-photo"></div>
+    <div class="detail-line"><b>Region:</b> Not selected</div>
+    <div class="detail-line"><b>Children:</b> 0</div>
+    <div class="detail-line"><b>Date of birth:</b> 1992</div>
+    <div class="detail-line"><b>Profession:</b> IT support</div>
+    <div class="detail-line"><b>Relation Status:</b> Single</div>
+    <div class="detail-line"><b>Massmail:</b> No</div>
+    <div class="detail-line"><b>Visit:</b> No</div>
+    <div class="detail-line"><b>Like:</b> Yes</div>
+    <div class="detail-line"><b>Favorite:</b> No</div>
+  </div>
+  <div class="profile-log-panel">
+    <button class="newlogs" type="button" onclick="openProfileLog('woman')">🔖 ADD NEW LOGS</button>
+    <div id="womanLogs"></div>
+  </div>
+</section>
+</div>
+
+<div class="note-overlay" id="logOverlay"><div class="note-modal log-modal"><h2>Add Log +</h2><div class="party-line"><span id="logPartyLeft"></span><span id="logPartyRight"></span></div><select id="logCategory"></select><div class="log-count">Logs: <span id="logCount">0</span></div><textarea id="logComment" placeholder="Comment"></textarea><div class="note-buttons" style="margin-top:16px"><button class="note-save" onclick="saveProfileLog()">SAVE CHANGES</button><button class="note-close" onclick="closeProfileLog()">CLOSE</button></div></div></div>
+<div class="note-overlay" id="noteOverlay">
+  <div class="note-modal">
+    <h2>Add Note +</h2>
+    <div class="note-divider"></div>
+    <textarea id="noteText" placeholder="Comment"></textarea>
+    <div class="note-options">
+      <label><input type="checkbox" id="importantNote"> Set this note as important</label>
+      <label id="pinDateRow" style="display:none">
+        Pin until:
+        <input type="date" id="pinUntil">
+      </label>
+    </div>
+    <div class="note-buttons">
+      <button class="note-save" onclick="saveNote()">SAVE CHANGES</button>
+      <button class="note-close" onclick="closeNoteModal()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+const logCategories = ["Name","City","Work","Family","Personal preference","Health","Hobby","Transportation","Sexual preference","Holiday","Other"];
+let activeLogPerson = "woman";
+
+function initCategoryLists(){
+  ['womanLogs','manLogs'].forEach(id=>{
+    const container=document.getElementById(id);
+    if(!container || container.children.length) return;
+    logCategories.forEach(category=>{
+      const cat=document.createElement('div');
+      cat.className='log-category empty';
+      cat.dataset.category=category;
+      cat.innerHTML=`<div class="cat-head"><span>${category}</span><span class="minus">−</span></div><div class="cat-body"></div>`;
+      container.appendChild(cat);
+    });
+  });
+}
+window.addEventListener('load', initCategoryLists);
+
+
+function openProfileLog(person){
+  activeLogPerson = person;
+  const select = document.getElementById('logCategory');
+  select.innerHTML = logCategories.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('logComment').value='';
+  document.getElementById('logCount').textContent='0';
+  document.getElementById('logPartyLeft').textContent = person==='man' ? 'Customer' : 'Escort';
+  document.getElementById('logPartyRight').textContent = person==='man' ? 'Customer' : 'JomfruMaria';
+  document.getElementById('logOverlay').style.display='flex';
+}
+function closeProfileLog(){
+  document.getElementById('logOverlay').style.display='none';
+}
+function saveProfileLog(){
+  const category=document.getElementById('logCategory').value;
+  const comment=document.getElementById('logComment').value.trim();
+  if(!comment){alert('Skriv først en note.');return;}
+  const container=document.getElementById(activeLogPerson==='woman'?'womanLogs':'manLogs');
+  let cat=[...container.querySelectorAll('.log-category')].find(x=>x.dataset.category===category);
+  if(!cat){
+    cat=document.createElement('div');
+    cat.className='log-category';
+    cat.dataset.category=category;
+    cat.innerHTML=`<div class="cat-head"><span>${category}</span><span class="minus">−</span></div><div class="cat-body"></div>`;
+    container.appendChild(cat);
+  }
+  const body=cat.querySelector('.cat-body');
+  const entry=document.createElement('div');
+  entry.className='log-entry';
+  const now=new Date();
+  const stamp=now.toLocaleDateString('da-DK',{day:'2-digit',month:'short',year:'2-digit'})+' '+now.toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'});
+  entry.innerHTML=`${escapeHtml(comment)}<div class="meta">${stamp}</div>`;
+  body.appendChild(entry);
+  cat.classList.remove('empty');
+  document.getElementById('logCount').textContent=String(body.children.length);
+  closeProfileLog();
+}
+
+function profileNote(){alert('Profile note: this section is for notes about the woman/profile and is separate from Top Notes.');}
+function openNoteModal(){
+  document.getElementById('noteOverlay').style.display='flex';
+}
+function closeNoteModal(){
+  document.getElementById('noteOverlay').style.display='none';
+}
+window.addEventListener('load', function(){
+  const cb=document.getElementById('importantNote');
+  if(cb) cb.addEventListener('change',function(){
+    document.getElementById('pinDateRow').style.display=this.checked?'flex':'none';
+  });
+});
+function saveNote(){
+  const text=document.getElementById('noteText').value.trim();
+  const important=document.getElementById('importantNote').checked;
+  const until=document.getElementById('pinUntil').value;
+  if(!text){alert('Skriv først en note.');return;}
+  if(important && !until){alert('Vælg en dato, hvor den vigtige note skal fjernes fra toppen.');return;}
+  const logs=document.querySelector('.logs');
+  const div=document.createElement('div');
+  div.className='log';
+  div.innerHTML=(important?'<span class="pin">📌</span>':'')+
+    '<b>New note<br>just now</b> &nbsp; '+escapeHtml(text)+
+    (important?'<small style="display:block;color:#cfd5da;margin-top:5px">Pinned until '+until+'</small>':'')+
+    '<span class="edit">✎</span><span class="delete">▮</span>';
+  if(important) logs.prepend(div); else logs.appendChild(div);
+  document.getElementById('noteText').value='';
+  document.getElementById('importantNote').checked=false;
+  document.getElementById('pinDateRow').style.display='none';
+  document.getElementById('pinUntil').value='';
+  closeNoteModal();
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+function send(){const t=document.getElementById('msg');if(!t.value.trim())return;alert('Prototype: message added to the conversation.');t.value='';}
+function panic(){alert('Prototype: conversation sent to Panic Room for admin review.');}
+function hold(){alert('Prototype: choose a hold duration (5 / 15 / 30 / 60 / 120 min) in the production system.');}
+</script>
+<script>
+let TOKEN=sessionStorage.getItem('t')||'';
+let cur=null,sig='',D=null;const $=s=>document.querySelector(s),esc=escapeHtml,fmt=t=>new Date(t).toLocaleString('da-DK',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+const api=(p,b)=>fetch('/api/op'+p,{method:b?'POST':'GET',headers:{'x-op-token':TOKEN,'Content-Type':'application/json'},body:b&&JSON.stringify(b)}).then(r=>{if(r.status===401){sessionStorage.removeItem('t');location.reload()}return r.json()});
+const refresh=()=>{sig='';return poll()};
+function renderLogs(box,obj){box.innerHTML=logCategories.map(c=>{const e=(obj||{})[c]||[];return '<div class="log-category'+(e.length?'':' empty')+'"><div class="cat-head"><span>'+c+'</span><span class="minus">−</span></div><div class="cat-body">'+e.map(x=>'<div class="log-entry">'+esc(x.text)+'<div class="meta">'+fmt(x.at)+'</div></div>').join('')+'</div></div>'}).join('')}
+async function poll(){const d=await api('/next?cur='+(cur||''));D=d;
+ const q=d.queue||0,s=JSON.stringify(d);if(s===sig)return;sig=s;
+ if(d.none){cur=null;$('.queue').innerHTML='<b>Messages in queue: 0</b>';$('.customer-msg').textContent='Ingen ventende samtaler';$('#hist').innerHTML='';$('.logs').innerHTML='';$('.facts').innerHTML='';return}
+ cur=d.id;const c=d.conv,u=d.customer,today=new Date().toISOString().slice(0,10);
+ $('.badge').textContent='● '+u.credits+' credits';$('.facts').innerHTML='<div><strong>Name:</strong> '+esc(u.name)+'</div><div><strong>City:</strong> '+esc(u.city||'-')+'</div>';
+ $('.queue').innerHTML='<b>Messages in queue: '+q+'</b><br>Conversation Started: '+fmt(c.started);
+ document.querySelectorAll('.count')[0].textContent=d.inCount;document.querySelectorAll('.count')[1].textContent=d.outCount;
+ $('#hist').innerHTML=c.msgs.map(m=>'<div style="margin:4px 0;text-align:'+(m.from==='m'?'right':'left')+'"><span style="display:inline-block;padding:6px 10px;border-radius:10px;background:'+(m.from==='m'?'#477aa7':'#48515a')+'">'+esc(m.text)+'</span></div>').join('');$('#hist').scrollTop=1e9;
+ const lastC=[...c.msgs].reverse().find(m=>m.from==='c');$('.customer-msg').textContent='Customer: '+(lastC?lastC.text:'-');
+ const imp=n=>n.important&&(!n.until||n.until>=today);
+ $('.logs').innerHTML=[...c.notes].sort((a,b)=>imp(b)-imp(a)).map(n=>'<div class="log" data-id="'+n.id+'">'+(imp(n)?'<span class="pin">📌</span>':'')+'<b>'+fmt(n.at)+'</b> &nbsp; '+esc(n.text)+(imp(n)?'<small style="display:block;color:#cfd5da">Pinned until '+n.until+'</small>':'')+'<span class="edit" data-a="edit">✎</span><span class="delete" data-a="del">▮</span></div>').join('');
+ renderLogs($('#manLogs'),c.logs.man);renderLogs($('#womanLogs'),c.logs.woman)}
+$('.logs').addEventListener('click',async e=>{const a=e.target.dataset.a,row=e.target.closest('.log');if(!a||!row)return;let text;
+ if(a==='edit'){text=prompt('Rediger note',row.childNodes[2]?.textContent.trim());if(!text)return}else if(!confirm('Slet noten?'))return;
+ await api('/note',{action:a,id:cur,noteId:row.dataset.id,text});refresh()});
+async function send(){const t=$('#msg'),v=t.value.trim();if(!v||!cur)return;t.value='';await api('/send',{id:cur,text:v});refresh()}
+function panic(){if(cur&&confirm('Send samtalen til Panic Room?'))api('/status',{id:cur,status:'panic'}).then(()=>{cur=null;refresh()})}
+function hold(){const m=cur&&prompt('Hold i minutter (5 / 15 / 30 / 60 / 120)','15');if(m)api('/status',{id:cur,status:'hold',minutes:+m}).then(refresh)}
+$('.quit').onclick=()=>cur&&api('/status',{id:cur,status:'closed'}).then(()=>{cur=null;refresh()});
+$('.bluebtn').onclick=function(){if(!cur)return;const me=this.dataset.me!=='1';this.dataset.me=me?'1':'';this.textContent=me?'Assigned: Me ▾':'Assign To ▾';api('/status',{id:cur,status:'assign',assignee:me?'me':''})};
+async function saveNote(){const text=$('#noteText').value.trim(),imp=$('#importantNote').checked,until=$('#pinUntil').value;
+ if(!cur)return alert('Ingen aktiv samtale.');if(!text)return alert('Skriv først en note.');if(imp&&!until)return alert('Vælg en dato, hvor den vigtige note skal fjernes fra toppen.');
+ await api('/note',{action:'add',id:cur,text,important:imp,until});$('#noteText').value='';$('#importantNote').checked=false;$('#pinDateRow').style.display='none';$('#pinUntil').value='';closeNoteModal();refresh()}
+const _open=openProfileLog;openProfileLog=function(p){if(!cur)return alert('Ingen aktiv samtale.');_open(p);
+ if(p==='man'&&!D.customer.sensitive)[...$('#logCategory').options].forEach(o=>{if(['Health','Sexual preference'].includes(o.value))o.remove()})};
+async function saveProfileLog(){const text=$('#logComment').value.trim();if(!text)return alert('Skriv først en note.');
+ const r=await api('/log',{id:cur,person:activeLogPerson,category:$('#logCategory').value,text});if(r.error)return alert(r.error);closeProfileLog();refresh()}
+document.querySelectorAll('.nav a')[2].textContent='Admin';
+document.querySelectorAll('.nav a').forEach((a,i)=>a.onclick=async e=>{e.preventDefault();if(i===2)return location.href='/admin.html';if(i>0){const s=await api('/stats'+(i===3?'?me=1':''));alert(Object.entries(s).map(([k,v])=>k.replace('_',' ')+': '+v).join('\n'))}});
+async function boot(){while(!TOKEN){const u=prompt('Username'),p=u===null?null:prompt('Password');if(p===null)return;
+ const r=await fetch('/api/op/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+ if(r.ok){TOKEN=(await r.json()).token;sessionStorage.setItem('t',TOKEN)}else alert(r.status===429?'For mange forsøg. Prøv senere.':'Wrong username or password')}
+ poll();setInterval(poll,2500)}boot();
+</script>
+</body>
+</html>

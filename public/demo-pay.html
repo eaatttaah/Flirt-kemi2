@@ -1,0 +1,5 @@
+<!doctype html><html lang="da"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Demo-betaling</title>
+<body style="margin:0;background:#404952;color:#f2f4f6;font:16px Arial;display:grid;place-items:center;min-height:100vh"><div style="background:#30383f;padding:28px;max-width:420px;border-top:2px solid #e8b522">
+<h2 style="margin-top:0">Demo-betaling</h2><p>Dette er en testbetaling. Der trækkes ingen rigtige penge.</p>
+<button id="b" style="width:100%;padding:14px;border:0;border-radius:5px;background:#3394d5;color:#fff;font-size:16px;cursor:pointer">Godkend testbetaling</button></div>
+<script>b.onclick=async()=>{await fetch('/api/demo/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:new URLSearchParams(location.search).get('o')})});location.href='/buy.html?status=ok'}</script></body></html>
