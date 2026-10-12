@@ -255,7 +255,7 @@ async function poll(){const d=await api('/next?cur='+(cur||''));D=d;
  const q=d.queue||0,s=JSON.stringify(d);if(s===sig)return;sig=s;
  if(d.none){cur=null;$('.queue').innerHTML='<b>Messages in queue: 0</b>';$('.customer-msg').textContent='Ingen ventende samtaler';$('#hist').innerHTML='';$('.logs').innerHTML='';$('.facts').innerHTML='';return}
  cur=d.id;const c=d.conv,u=d.customer,today=new Date().toISOString().slice(0,10);
- $('.badge').textContent='● '+u.credits+' credits';$('.facts').innerHTML='<div><strong>Name:</strong> '+esc(u.name)+'</div><div><strong>City:</strong> '+esc(u.city||'-')+'</div>';
+ $('.badge').textContent='● '+u.credits+' credits';$('.facts').innerHTML=[['Name',u.name],['Full name',[u.first,u.last].filter(Boolean).join(' ')],['Age',u.age],['City',u.city],['Likes',u.likes],['Looking for',u.seeking]].filter(x=>x[1]).map(x=>'<div><strong>'+x[0]+':</strong> '+esc(String(x[1]))+'</div>').join('');
  $('.queue').innerHTML='<b>Messages in queue: '+q+'</b><br>Conversation Started: '+fmt(c.started);
  document.querySelectorAll('.count')[0].textContent=d.inCount;document.querySelectorAll('.count')[1].textContent=d.outCount;
  $('#hist').innerHTML=c.msgs.map(m=>'<div style="margin:4px 0;text-align:'+(m.from==='m'?'right':'left')+'"><span style="display:inline-block;padding:6px 10px;border-radius:10px;background:'+(m.from==='m'?'#477aa7':'#48515a')+'">'+esc(m.text)+'</span></div>').join('');$('#hist').scrollTop=1e9;

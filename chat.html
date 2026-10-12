@@ -1,46 +1,50 @@
 <!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat – Flirt &amp; Kemi</title>
 <style>
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:linear-gradient(160deg,#3a2347 0%,#404952 60%);color:#f2f4f6;font:16px/1.5 Arial,Helvetica,sans-serif;display:flex;flex-direction:column;align-items:center}
-.wrap{width:100%;max-width:640px;flex:1;display:flex;flex-direction:column;padding:12px;min-height:0}
-.panel{background:#2b3138e6;border-radius:18px;box-shadow:0 10px 30px #0007;overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
-.head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(90deg,#4a2a5c,#35283f);border-bottom:1px solid #ffffff14}
-.av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ff5fa2,#a45cff);display:grid;place-items:center;font-weight:bold;font-size:19px;flex:none}
-.who{flex:1;min-width:0}.who b{display:block;font-size:17px}.who small{color:#c9bfd3;font-size:12px}
-.pill{background:#ffffff1a;border-radius:20px;padding:5px 12px;font-size:13px;white-space:nowrap}.pill a{color:#ffb3d6;text-decoration:none;font-weight:bold;margin-left:6px}
-#msgs{flex:1;overflow:auto;padding:16px 14px;display:flex;flex-direction:column;gap:6px;min-height:0}
-.m{max-width:80%;padding:9px 13px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word}
-.m small{display:block;font-size:11px;opacity:.65;margin-top:2px}
-.c{align-self:flex-end;background:linear-gradient(135deg,#ff5fa2,#a45cff);border-bottom-right-radius:5px}
-.o{align-self:flex-start;background:#48515a;border-bottom-left-radius:5px}
-.empty{margin:auto;text-align:center;color:#c9bfd3}.empty div{font-size:38px}
-#low{background:#5a2f45;color:#ffd4e6;padding:9px 14px;font-size:14px;text-align:center}#low a{color:#fff;font-weight:bold}
-.bar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #ffffff14;align-items:flex-end}
-textarea{flex:1;resize:none;background:#3a434b;border:1px solid #59636c;border-radius:20px;color:#fff;padding:10px 15px;font:inherit;max-height:120px}
-textarea:focus,input:focus{outline:2px solid #ff7eb6;border-color:transparent}
-#sendb{width:46px;height:46px;border:0;border-radius:50%;background:linear-gradient(135deg,#ff5fa2,#a45cff);color:#fff;font-size:20px;cursor:pointer;flex:none}
-.sub{display:flex;justify-content:space-between;gap:10px;padding:0 16px 10px;font-size:12px;color:#aeb6be;flex-wrap:wrap}#err2{color:#ffb3ab;padding:0 16px}
-.tag{text-align:center;font-size:12px;color:#c9bfd3;padding:8px 12px}
-.reg{padding:26px 22px}.reg h2{margin:0 0 6px;font-size:26px}.reg p{color:#d8d0df}
-input{width:100%;background:#3a434b;border:1px solid #59636c;border-radius:12px;color:#fff;padding:12px 14px;font:inherit;margin:6px 0}
-.go{width:100%;border:0;border-radius:26px;background:linear-gradient(90deg,#ff5fa2,#a45cff);color:#fff;padding:14px;font-size:17px;font-weight:bold;cursor:pointer;margin-top:10px}
-#err{color:#ffb3ab;min-height:20px}.foot{padding:8px;font-size:12px;color:#aab2ba}.foot a{color:#aac8e6}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#fff1e8,#ffd9e8 55%,#eadcff);min-height:100vh;color:#3b2a3f;font:16px/1.5 Arial,Helvetica,sans-serif;display:flex;justify-content:center}
+.wrap{width:100%;max-width:640px;padding:12px;display:flex;flex-direction:column;min-height:100vh}
+.panel{background:#fff;border-radius:18px;box-shadow:0 10px 30px #b9709e33;overflow:hidden;display:flex;flex-direction:column;flex:1}
+.head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(90deg,#ffd6e6,#eadcff);border-bottom:1px solid #f0d6e4}
+.av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#f0508a,#9a5ee0);display:grid;place-items:center;font-weight:bold;font-size:19px;flex:none;color:#fff}
+.who{flex:1;min-width:0}.who b{display:block;font-size:17px}.who small{color:#7a5a80;font-size:12px}
+.pill{background:#fff;border-radius:20px;padding:5px 12px;font-size:13px;white-space:nowrap;box-shadow:0 1px 4px #b9709e33}.pill a{color:#c2307a;text-decoration:none;font-weight:bold;margin-left:6px}
+#msgs{flex:1;overflow:auto;padding:16px 14px;display:flex;flex-direction:column;gap:6px;min-height:300px;max-height:60vh}
+.m{max-width:80%;padding:9px 13px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word}.m small{display:block;font-size:11px;opacity:.7;margin-top:2px}
+.c{align-self:flex-end;background:linear-gradient(135deg,#f0508a,#9a5ee0);color:#fff;border-bottom-right-radius:5px}.o{align-self:flex-start;background:#f4eaf8;border-bottom-left-radius:5px}
+.empty{margin:auto;text-align:center;color:#8a7090}.empty div{font-size:38px}
+#low{background:#ffe3ee;color:#8a2a55;padding:9px 14px;font-size:14px;text-align:center}#low a{color:#c2307a;font-weight:bold}
+.bar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #f0d6e4;align-items:flex-end}
+textarea,input,select{width:100%;background:#fff4f8;border:1px solid #e6c9d9;border-radius:12px;color:#3b2a3f;padding:11px 13px;font:inherit}
+textarea{flex:1;resize:none;border-radius:20px;max-height:120px}textarea:focus,input:focus,select:focus{outline:2px solid #f0508a;border-color:transparent}
+#sendb{width:46px;height:46px;border:0;border-radius:50%;background:linear-gradient(135deg,#f0508a,#9a5ee0);color:#fff;font-size:20px;cursor:pointer;flex:none}
+.sub{display:flex;justify-content:space-between;gap:10px;padding:0 16px 10px;font-size:12px;color:#8a7090;flex-wrap:wrap}.sub a{color:#8a7090}#err2{color:#c0392b;padding:0 16px}
+.reg{padding:22px}.reg h2{margin:0 0 4px;font-size:26px;color:#4a2150}.reg p{color:#6a4a70;margin:0 0 10px}.reg label{display:block;font-size:13px;color:#6a4a70;margin-top:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#4a3a50;margin-top:12px}.chk input{width:18px;height:18px;margin-top:2px;flex:none}
+select:disabled{opacity:.5}.go{width:100%;border:0;border-radius:26px;background:linear-gradient(90deg,#f0508a,#9a5ee0);color:#fff;padding:14px;font-size:17px;font-weight:bold;cursor:pointer;margin-top:16px}
+#err{color:#c0392b;min-height:20px;margin-top:8px}.tag{text-align:center;font-size:12px;color:#7a5a80;padding-top:10px}.foot{padding:10px;font-size:12px;text-align:center}.foot a{color:#c2307a}
 </style></head><body><div class="wrap"><div class="panel">
-<div id="reg" class="reg" hidden><h2>Velkommen 💋</h2><p>Opret dig gratis, så er du klar til at skrive med JomfruMaria.</p>
-<input id="n" placeholder="Dit fornavn" maxlength="40" autocomplete="given-name"><input id="ci" placeholder="By (valgfrit)" maxlength="40">
-<button class="go" onclick="reg()">Start chat ✨</button><div id="err"></div>
-<div class="tag">💬 JomfruMaria er en fiktiv profil styret af moderatorer · Kun 18+<br>Du bekræfter vilkår og samtykke, før du køber kreditter.</div></div>
-<div id="chat" hidden style="display:none;flex-direction:column;flex:1;min-height:0">
+<div id="reg" class="reg" hidden><h2>Velkommen 💋</h2><p>Fortæl lidt om dig selv, så er du klar til at skrive med JomfruMaria. Det meste er valgfrit.</p>
+<label>Kaldenavn *<input id="nick" maxlength="40" placeholder="fx Lasse"></label>
+<div class="two"><label>Fornavn<input id="first" maxlength="40" autocomplete="given-name"></label><label>Efternavn<input id="last" maxlength="40" autocomplete="family-name"></label></div>
+<div class="two"><label>Alder *<input id="age" type="number" min="18" max="99" inputmode="numeric"></label><label>By<input id="ci" maxlength="40"></label></div>
+<label>Hvad kan du lide?<input id="likes" maxlength="300" placeholder="fx musik, rejser, hygge, humor"></label>
+<label>Hvad leder du efter? <small>(kræver samtykke nedenfor)</small><select id="seek" disabled><option value="">Vil helst ikke sige</option><option>Romantik og nærhed</option><option>Flirt og sjov</option><option>Erotisk fantasi</option><option>Ved ikke endnu</option></select></label>
+<label class="chk"><input type="checkbox" id="k1"><span>Jeg er fyldt 18 år, og jeg accepterer, at mine oplysninger gemmes for at levere tjenesten. Se <a href="/privatliv.html" target="_blank">privatliv</a>. *</span></label>
+<label class="chk"><input type="checkbox" id="k2"><span>Valgfrit: Jeg samtykker udtrykkeligt til, at oplysninger om, hvad jeg leder efter, gemmes. Jeg kan trække samtykket tilbage og få dem slettet.</span></label>
+<button class="go" onclick="reg()">Opret og start chat ✨</button><div id="err"></div>
+<div class="tag">💬 JomfruMaria er en fiktiv profil styret af moderatorer · Kun 18+<br>Du bekræfter vilkår, før du køber kreditter.</div></div>
+<div id="chat" style="display:none;flex-direction:column;flex:1">
 <div class="head"><div class="av">M</div><div class="who"><b>JomfruMaria</b><small>Fiktiv profil · styret af moderatorer · 18+</small></div><div class="pill"><span id="cr">0</span> kreditter<a href="/buy.html">+ Køb</a></div></div>
 <div id="low" hidden>Du har ikke flere kreditter til en besked. <a href="/buy.html">Fyld op</a> for at skrive videre.</div>
 <div id="msgs"></div><div id="err2"></div>
 <div class="bar"><textarea id="t" rows="1" placeholder="Skriv en besked ..." aria-label="Din besked"></textarea><button id="sendb" onclick="send()" aria-label="Send">➤</button></div>
-<div class="sub"><span id="cost"></span><a href="#" onclick="del();return false" style="color:#aeb6be">Slet mine data og min profil</a></div></div>
+<div class="sub"><span id="cost"></span><a href="#" onclick="del();return false">Slet mine data og min profil</a></div></div>
 </div><div class="foot"><a href="/">Forside</a> · <a href="/vilkaar.html">Vilkår</a> · <a href="/privatliv.html">Privatliv</a></div></div>
 <script>
 const $=i=>document.getElementById(i),esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let id=localStorage.getItem('cid'),n=-1;
-const tm=a=>new Date(a).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'});
-async function reg(){const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('n').value,city:$('ci').value})});const j=await r.json();if(!r.ok)return $('err').textContent=j.error;localStorage.setItem('cid',id=j.id);n=-1;poll()}
+let id=localStorage.getItem('cid'),n=-1;const tm=a=>new Date(a).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'});
+$('k2').onchange=()=>{$('seek').disabled=!$('k2').checked;if(!$('k2').checked)$('seek').value=''};
+async function reg(){const body={nick:$('nick').value,first:$('first').value,last:$('last').value,age:$('age').value,city:$('ci').value,likes:$('likes').value,seeking:$('seek').value,consent:{adult:$('k1').checked,data:$('k1').checked,sensitive:$('k2').checked}};
+ const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)return $('err').textContent=j.error;localStorage.setItem('cid',id=j.id);n=-1;poll()}
 async function poll(){if(!id){$('reg').hidden=false;$('chat').style.display='none';return}
  const r=await fetch('/api/chat/'+id);if(r.status===404){localStorage.removeItem('cid');id=null;return poll()}
  const d=await r.json();$('reg').hidden=true;$('chat').style.display='flex';$('cr').textContent=d.credits;$('cost').textContent='1 besked = '+d.cost+' kreditter';$('low').hidden=d.credits>=d.cost;

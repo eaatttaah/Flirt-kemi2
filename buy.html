@@ -2,17 +2,17 @@
 <html lang="da"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Køb kreditter</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#3a2347,#404952);min-height:100vh;color:#f2f4f6;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5}
-main{max-width:560px;margin:32px auto;padding:0 16px}.card{background:#30383f;border-top:2px solid #ff7eb6;border-radius:12px;padding:24px;box-shadow:0 2px 6px #0004}
-h1{margin:0 0 16px;font-size:24px}.notice{background:#3a434b;border-left:4px solid #e8b522;padding:12px 14px;margin-bottom:18px}
-.pkgs{display:grid;gap:8px;margin:14px 0}.pkg{display:flex;justify-content:space-between;padding:12px 14px;background:#3a434b;border:2px solid transparent;border-radius:5px;cursor:pointer}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#fff1e8,#ffd9e8 55%,#eadcff);min-height:100vh;color:#3b2a3f;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5}
+main{max-width:560px;margin:32px auto;padding:0 16px}.card{background:#fff;border-top:2px solid #ff7eb6;border-radius:12px;padding:24px;box-shadow:0 6px 24px #b9709e33}
+h1{margin:0 0 16px;font-size:24px}.notice{background:#fff3f8;border-left:4px solid #e8b522;padding:12px 14px;margin-bottom:18px}
+.pkgs{display:grid;gap:8px;margin:14px 0}.pkg{display:flex;justify-content:space-between;padding:12px 14px;background:#fff3f8;border:2px solid transparent;border-radius:5px;cursor:pointer}
 .pkg:has(input:checked){border-color:#ff7eb6}.pkg input{margin-right:10px}
 .consent label{display:flex;gap:10px;margin:10px 0;align-items:flex-start}.consent input{margin-top:4px;width:18px;height:18px;flex:none}
 button{width:100%;margin-top:16px;padding:14px;border:0;border-radius:5px;background:linear-gradient(90deg,#ff5fa2,#a45cff);color:#fff;font-size:17px;font-weight:bold;cursor:pointer}
-button:disabled{background:#59636c;cursor:not-allowed}#msg{margin-top:12px;color:#ffb3ab}.ok{color:#9be29b!important}
-small{color:#cfd5da}
+button:disabled{background:#cdb8c9;cursor:not-allowed}#msg{margin-top:12px;color:#c0392b}.ok{color:#1e8e4e!important}
+small{color:#7a6a80}
 </style></head><body><main><div class="card">
-<h1>Køb kreditter</h1><p><a href="/chat.html" style="color:#7cc4ff">← Tilbage til chat</a></p>
+<h1>Køb kreditter</h1><p><a href="/chat.html" style="color:#c2307a">← Tilbage til chat</a></p>
 <div id="status"></div>
 <div class="notice"><b>Vigtigt:</b> Profilerne på tjenesten er fiktive og styres af vores medarbejdere (moderatorer). Du skriver ikke med en rigtig person, der er den, profilen udgiver sig for at være. Tjenesten er kun for personer over 18 år.</div>
 <div>1 besked = <b id="rate">10</b> kreditter. Priser er i danske kroner (DKK).</div>
@@ -30,8 +30,8 @@ small{color:#cfd5da}
 const CUSTOMER_ID=localStorage.getItem('cid')||'';if(!CUSTOMER_ID)location.href='/chat.html';
 const $=id=>document.getElementById(id);
 const q=new URLSearchParams(location.search).get('status');
-if(q==='ok'){$('status').innerHTML='<p class="ok" style="color:#9be29b">Tak! Dine kreditter bliver lagt til, når betalingen er bekræftet.</p>'}
-if(q==='cancel'){$('status').innerHTML='<p style="color:#ffb3ab">Betalingen blev afbrudt. Der er ikke trukket penge.</p>'}
+if(q==='ok'){$('status').innerHTML='<p class="ok" style="color:#1e8e4e">Tak! Dine kreditter bliver lagt til, når betalingen er bekræftet.</p>'}
+if(q==='cancel'){$('status').innerHTML='<p style="color:#c0392b">Betalingen blev afbrudt. Der er ikke trukket penge.</p>'}
 fetch('/api/packages').then(r=>r.json()).then(p=>{
   $('pkgs').innerHTML=Object.entries(p).map(([id,v],i)=>`<label class="pkg"><span><input type="radio" name="pkg" value="${id}" ${i?'':'checked'}>${v.credits} kreditter</span><b>${v.dkk} kr.</b></label>`).join('');
 });
