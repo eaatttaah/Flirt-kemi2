@@ -51,7 +51,7 @@ app.get('/sitemap.xml', (_, res) => res.type('application/xml').send('<?xml vers
 app.use((req, res, next) => { if (/^\/(chat|buy|demo-pay|operator|admin)\.html$|^\/api\//.test(req.path)) res.set('X-Robots-Tag', 'noindex'); next(); });
 // Kun disse sider serveres (virker både med og uden public-mappe; udsætter aldrig server.js eller data)
 const PAGES = ['index', 'chat', 'buy', 'demo-pay', 'operator', 'admin', 'vilkaar', 'privatliv'];
-const PUB = fs.existsSync(path.join(__dirname, 'public', 'index.html')) ? path.join(__dirname, 'public') : __dirname;
+const PUB = fs.existsSync(path.join(__dirname, 'index.html')) ? __dirname : path.join(__dirname, 'public');   // nyeste filer i roden vinder
 app.get(['/', ...PAGES.map(p => '/' + p + '.html')], (req, res) =>
   res.sendFile(path.join(PUB, req.path === '/' ? 'index.html' : req.path.slice(1))));
 

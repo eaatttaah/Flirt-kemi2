@@ -1,24 +1,56 @@
-<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat</title>
-<style>*{box-sizing:border-box}body{margin:0;background:#404952;color:#f2f4f6;font:15px/1.5 Arial,Helvetica,sans-serif}main{max-width:560px;margin:24px auto;padding:0 16px}
-.card{background:#30383f;border-top:2px solid #2474ac;padding:20px}.notice{background:#3a434b;border-left:4px solid #e8b522;padding:10px 14px;margin-bottom:14px;font-size:13px}
-input,textarea{width:100%;background:#3a434b;border:1px solid #59636c;color:#fff;padding:10px;font-size:15px;margin:6px 0}button{border:0;border-radius:5px;background:#3394d5;color:#fff;padding:11px 16px;font-size:15px;cursor:pointer}
-#msgs{height:340px;overflow:auto;background:#262d33;padding:10px;margin:10px 0}.m{margin:6px 0;display:flex}.m span{padding:8px 12px;border-radius:12px;max-width:80%;white-space:pre-wrap}
-.c{justify-content:flex-end}.c span{background:#477aa7}.o span{background:#48515a}.bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}a{color:#7cc4ff}#err{color:#ffb3ab;min-height:20px}.row{display:flex;gap:8px}.row button{width:90px}</style></head><body><main>
-<div class="notice"><b>Vigtigt:</b> Profilen JomfruMaria er fiktiv og styres af vores medarbejdere (moderatorer). Du skriver ikke med en rigtig person. Kun for personer over 18 år.</div>
-<div class="card" id="reg"><h2 style="margin-top:0">Opret dig</h2><input id="n" placeholder="Dit fornavn" maxlength="40"><input id="ci" placeholder="By (valgfrit)" maxlength="40"><button onclick="reg()">Start chat</button><div id="err"></div></div>
-<div class="card" id="chat" hidden><div class="bar"><b id="who"></b><span><span id="cr"></span> kreditter · <a href="/buy.html">Køb kreditter</a></span></div>
-<div id="msgs"></div><div class="row"><textarea id="t" rows="2" placeholder="Skriv en besked ..." style="margin:0"></textarea><button onclick="send()">Send</button></div>
-<small id="cost"></small><div id="err2" style="color:#ffb3ab"></div><p><a href="#" onclick="del();return false">Slet mine data og min profil</a></p></div></main>
+<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat – Flirt &amp; Kemi</title>
+<style>
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:linear-gradient(160deg,#3a2347 0%,#404952 60%);color:#f2f4f6;font:16px/1.5 Arial,Helvetica,sans-serif;display:flex;flex-direction:column;align-items:center}
+.wrap{width:100%;max-width:640px;flex:1;display:flex;flex-direction:column;padding:12px;min-height:0}
+.panel{background:#2b3138e6;border-radius:18px;box-shadow:0 10px 30px #0007;overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
+.head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(90deg,#4a2a5c,#35283f);border-bottom:1px solid #ffffff14}
+.av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ff5fa2,#a45cff);display:grid;place-items:center;font-weight:bold;font-size:19px;flex:none}
+.who{flex:1;min-width:0}.who b{display:block;font-size:17px}.who small{color:#c9bfd3;font-size:12px}
+.pill{background:#ffffff1a;border-radius:20px;padding:5px 12px;font-size:13px;white-space:nowrap}.pill a{color:#ffb3d6;text-decoration:none;font-weight:bold;margin-left:6px}
+#msgs{flex:1;overflow:auto;padding:16px 14px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.m{max-width:80%;padding:9px 13px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word}
+.m small{display:block;font-size:11px;opacity:.65;margin-top:2px}
+.c{align-self:flex-end;background:linear-gradient(135deg,#ff5fa2,#a45cff);border-bottom-right-radius:5px}
+.o{align-self:flex-start;background:#48515a;border-bottom-left-radius:5px}
+.empty{margin:auto;text-align:center;color:#c9bfd3}.empty div{font-size:38px}
+#low{background:#5a2f45;color:#ffd4e6;padding:9px 14px;font-size:14px;text-align:center}#low a{color:#fff;font-weight:bold}
+.bar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #ffffff14;align-items:flex-end}
+textarea{flex:1;resize:none;background:#3a434b;border:1px solid #59636c;border-radius:20px;color:#fff;padding:10px 15px;font:inherit;max-height:120px}
+textarea:focus,input:focus{outline:2px solid #ff7eb6;border-color:transparent}
+#sendb{width:46px;height:46px;border:0;border-radius:50%;background:linear-gradient(135deg,#ff5fa2,#a45cff);color:#fff;font-size:20px;cursor:pointer;flex:none}
+.sub{display:flex;justify-content:space-between;gap:10px;padding:0 16px 10px;font-size:12px;color:#aeb6be;flex-wrap:wrap}#err2{color:#ffb3ab;padding:0 16px}
+.tag{text-align:center;font-size:12px;color:#c9bfd3;padding:8px 12px}
+.reg{padding:26px 22px}.reg h2{margin:0 0 6px;font-size:26px}.reg p{color:#d8d0df}
+input{width:100%;background:#3a434b;border:1px solid #59636c;border-radius:12px;color:#fff;padding:12px 14px;font:inherit;margin:6px 0}
+.go{width:100%;border:0;border-radius:26px;background:linear-gradient(90deg,#ff5fa2,#a45cff);color:#fff;padding:14px;font-size:17px;font-weight:bold;cursor:pointer;margin-top:10px}
+#err{color:#ffb3ab;min-height:20px}.foot{padding:8px;font-size:12px;color:#aab2ba}.foot a{color:#aac8e6}
+</style></head><body><div class="wrap"><div class="panel">
+<div id="reg" class="reg" hidden><h2>Velkommen 💋</h2><p>Opret dig gratis, så er du klar til at skrive med JomfruMaria.</p>
+<input id="n" placeholder="Dit fornavn" maxlength="40" autocomplete="given-name"><input id="ci" placeholder="By (valgfrit)" maxlength="40">
+<button class="go" onclick="reg()">Start chat ✨</button><div id="err"></div>
+<div class="tag">💬 JomfruMaria er en fiktiv profil styret af moderatorer · Kun 18+<br>Du bekræfter vilkår og samtykke, før du køber kreditter.</div></div>
+<div id="chat" hidden style="display:none;flex-direction:column;flex:1;min-height:0">
+<div class="head"><div class="av">M</div><div class="who"><b>JomfruMaria</b><small>Fiktiv profil · styret af moderatorer · 18+</small></div><div class="pill"><span id="cr">0</span> kreditter<a href="/buy.html">+ Køb</a></div></div>
+<div id="low" hidden>Du har ikke flere kreditter til en besked. <a href="/buy.html">Fyld op</a> for at skrive videre.</div>
+<div id="msgs"></div><div id="err2"></div>
+<div class="bar"><textarea id="t" rows="1" placeholder="Skriv en besked ..." aria-label="Din besked"></textarea><button id="sendb" onclick="send()" aria-label="Send">➤</button></div>
+<div class="sub"><span id="cost"></span><a href="#" onclick="del();return false" style="color:#aeb6be">Slet mine data og min profil</a></div></div>
+</div><div class="foot"><a href="/">Forside</a> · <a href="/vilkaar.html">Vilkår</a> · <a href="/privatliv.html">Privatliv</a></div></div>
 <script>
 const $=i=>document.getElementById(i),esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let id=localStorage.getItem('cid'),n=-1;
-async function reg(){const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('n').value,city:$('ci').value})});const j=await r.json();if(!r.ok)return $('err').textContent=j.error;localStorage.setItem('cid',id=j.id);poll()}
-async function poll(){if(!id){$('reg').hidden=false;$('chat').hidden=true;return}
+const tm=a=>new Date(a).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'});
+async function reg(){const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('n').value,city:$('ci').value})});const j=await r.json();if(!r.ok)return $('err').textContent=j.error;localStorage.setItem('cid',id=j.id);n=-1;poll()}
+async function poll(){if(!id){$('reg').hidden=false;$('chat').style.display='none';return}
  const r=await fetch('/api/chat/'+id);if(r.status===404){localStorage.removeItem('cid');id=null;return poll()}
- const d=await r.json();$('reg').hidden=true;$('chat').hidden=false;$('who').textContent='JomfruMaria (fiktiv profil)';$('cr').textContent=d.credits;$('cost').textContent='1 besked = '+d.cost+' kreditter';
- if(d.msgs.length!==n){n=d.msgs.length;$('msgs').innerHTML=d.msgs.map(m=>'<div class="m '+(m.from==='c'?'c':'o')+'"><span>'+esc(m.text)+'</span></div>').join('');$('msgs').scrollTop=1e9}}
+ const d=await r.json();$('reg').hidden=true;$('chat').style.display='flex';$('cr').textContent=d.credits;$('cost').textContent='1 besked = '+d.cost+' kreditter';$('low').hidden=d.credits>=d.cost;
+ if(d.msgs.length!==n){const b=$('msgs'),near=n<0||b.scrollHeight-b.scrollTop-b.clientHeight<90;n=d.msgs.length;
+  b.innerHTML=n?d.msgs.map(m=>'<div class="m '+(m.from==='c'?'c':'o')+'">'+esc(m.text)+'<small>'+tm(m.at)+'</small></div>').join(''):'<div class="empty"><div>💬</div>Skriv din første besked ✨<br><small>Sig hej og kom godt i gang.</small></div>';
+  if(near)b.scrollTop=b.scrollHeight}}
 async function send(){const v=$('t').value.trim();if(!v)return;const r=await fetch('/api/chat/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:v})});
- if(r.ok){$('t').value='';$('err2').textContent=''}else $('err2').textContent=(await r.json()).error;poll()}
+ if(r.ok){$('t').value='';$('t').style.height='auto';$('err2').textContent=''}else $('err2').textContent=(await r.json()).error;poll()}
 async function del(){if(!confirm('Alle dine data slettes permanent. Fortsæt?'))return;await fetch('/api/me/'+id,{method:'DELETE'});localStorage.removeItem('cid');id=null;poll()}
+$('t').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,120)+'px'});
+$('t').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&matchMedia('(pointer:fine)').matches){e.preventDefault();send()}});
 poll();setInterval(poll,2000);
 </script></body></html>
