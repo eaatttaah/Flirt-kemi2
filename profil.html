@@ -1,0 +1,66 @@
+<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Min profil – Flirt &amp; Kemi</title><style>[hidden]{display:none!important}.regbg{background:linear-gradient(180deg,#fff3f866,#fff3f8aa 80%),url(/hero.jpg) 62% bottom/cover fixed no-repeat}.regbg #reg,.regbg .panel{background:#ffffffd9;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}.ib svg,.btn svg{display:block;margin:auto}*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#fff1e8,#ffd9e8 55%,#eadcff);min-height:100vh;color:#3b2a3f;font:16px/1.5 Arial,Helvetica,sans-serif}
+.wrap{max-width:680px;margin:0 auto;padding:12px;min-height:100vh;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:14px;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 4px 16px #b9709e22;margin-bottom:12px;flex-wrap:wrap}
+.top b{color:#4a2150}.top a{color:#c2307a;text-decoration:none;font-weight:bold;padding-bottom:2px}.top a.on{border-bottom:2px solid #f0508a}.top .sp{flex:1}
+.top a#out{font-weight:normal;color:#8a7090;font-size:13px}
+.pill{background:#fff4f8;border-radius:20px;padding:5px 12px;font-size:13px;white-space:nowrap}.pill a{margin-left:6px;color:#c2307a;text-decoration:none;font-weight:bold}
+.panel{background:#fff;border-radius:18px;box-shadow:0 10px 30px #b9709e33;overflow:hidden;flex:1;display:flex;flex-direction:column}
+.pad{padding:20px}h2{margin:0 0 10px;color:#4a2150}
+.av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#f0508a,#9a5ee0);display:grid;place-items:center;font-weight:bold;color:#fff;flex:none;overflow:hidden;object-fit:cover}
+img.av{display:block}.av.s{width:32px;height:32px;font-size:14px}.av.xl{width:96px;height:96px;font-size:38px}
+.row{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid #f4e3ec;text-decoration:none;color:inherit}.row:hover{background:#fff6fa}
+.row .t{flex:1;min-width:0}.row .t b{display:block}.row .t small{display:block;color:#8a7090;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .when{font-size:12px;color:#8a7090}
+.btn{display:inline-block;border:0;border-radius:22px;background:linear-gradient(90deg,#f0508a,#9a5ee0);color:#fff;padding:10px 20px;font:inherit;font-weight:bold;cursor:pointer;text-decoration:none}.btn.light{background:#fff4f8;color:#c2307a;border:1px solid #e6c9d9}.btn:disabled{opacity:.6;cursor:default}
+label{display:block;font-size:13px;color:#6a4a70;margin-top:10px}
+input,textarea,select{width:100%;background:#fff4f8;border:1px solid #e6c9d9;border-radius:12px;color:#3b2a3f;padding:11px 13px;font:inherit}
+input:focus,textarea:focus,select:focus{outline:2px solid #f0508a;border-color:transparent}select:disabled{opacity:.5}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#4a3a50;margin-top:12px}.chk input{width:18px;height:18px;margin-top:2px;flex:none}
+.ok{color:#1e8e4e}.err{color:#c0392b}.muted{color:#8a7090;font-size:12px}.foot{padding:10px;font-size:12px;text-align:center;color:#8a7090}.foot a{color:#c2307a}
+.tagf{display:inline-block;font-size:11px;background:#f4eaf8;color:#7a5a80;border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:middle;font-weight:normal}
+</style></head><body><div class="wrap"><div class="top"><b>Flirt &amp; Kemi</b><a href="/samtaler.html" id="n1">Samtaler</a><a href="/profil.html" id="n2">Min profil</a><span class="sp"></span><a href="#" id="out">Log ud</a><div class="pill"><span id="cr">–</span> kreditter<a href="/buy.html">+ Køb</a></div></div><div class="panel"><div class="pad">
+<h2>Min profil</h2>
+<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div id="avbox"></div><div>
+<input type="file" id="file" accept="image/*" hidden><button class="btn light" id="chg" type="button">Skift profilbillede</button> <button class="btn light" id="rm" type="button">Fjern</button>
+<div class="muted" style="margin-top:6px">Billedet vises i dine samtaler og kan ses af moderatorerne. Brug kun et billede af dig selv.</div><div id="avmsg" class="err muted"></div></div></div>
+<label>Kaldenavn *<input id="nick" maxlength="40"></label>
+<div class="two"><label>Fornavn<input id="first" maxlength="40"></label><label>Efternavn<input id="last" maxlength="40"></label></div>
+<div class="two"><label>Alder *<input id="age" type="number" min="18" max="99" inputmode="numeric"></label><label>By<input id="ci" maxlength="40"></label></div>
+<label>Hvad kan du lide?<input id="likes" maxlength="300" placeholder="fx musik, rejser, hygge, humor"></label>
+<label>Fortæl lidt om dig selv<textarea id="about" rows="4" maxlength="600" placeholder="Skriv, hvad du har lyst til, at profilerne ved om dig"></textarea></label>
+<label class="chk"><input type="checkbox" id="sens"><span>Jeg samtykker udtrykkeligt til, at oplysninger om, hvad jeg leder efter, gemmes. Fjerner du markeringen, slettes oplysningerne igen.</span></label>
+<label>Hvad leder du efter?<select id="seek" disabled><option value="">Vil helst ikke sige</option><option>Romantik og nærhed</option><option>Flirt og sjov</option><option>Erotisk fantasi</option><option>Ved ikke endnu</option></select></label>
+<button class="btn" id="save" type="button" style="margin-top:16px;width:100%">Gem ændringer</button><div id="msg" style="margin-top:8px"></div>
+<div style="margin-top:22px;padding-top:16px;border-top:1px solid #f4e3ec"><h2 style="font-size:18px">Log ind-oplysninger</h2>
+<div id="nologin" hidden style="background:#fff4f8;border:1px solid #e6c9d9;border-radius:12px;padding:10px 14px;font-size:14px">Din profil er kun gemt i denne browser. Tilføj e-mail og adgangskode, så du kan logge ind igen fra alle enheder.</div>
+<label>E-mail<input id="lemail" type="email" autocomplete="email"></label>
+<div id="curw" hidden><label>Nuværende adgangskode<input id="lcur" type="password" autocomplete="current-password"></label></div>
+<label>Ny adgangskode <small>(mindst 8 tegn)</small><input id="lpw" type="password" autocomplete="new-password"></label>
+<button class="btn light" id="lsave" type="button" style="margin-top:10px">Gem login</button><div id="lmsg" style="margin-top:6px"></div><div id="vbox" class="muted" hidden style="margin-top:8px"></div></div>
+<p style="margin-top:20px"><a href="#" id="del" style="color:#8a7090">Slet mine data og min profil</a></p></div></div><div class="foot"><a href="/">Forside</a> · <a href="/vilkaar.html">Vilkår</a> · <a href="/privatliv.html">Privatliv</a> · Profilerne er fiktive og styres af moderatorer · Kun 18+</div></div><script>const $=i=>document.getElementById(i),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let CID=localStorage.getItem('cid');
+const j=async(url,method,body)=>{const r=await fetch(url,{method:method||'GET',headers:{'Content-Type':'application/json'},body:body&&JSON.stringify(body)});let d={};try{d=await r.json()}catch(e){}if(!r.ok){const er=new Error(d.error||'Noget gik galt');er.status=r.status;throw er}return d};
+const initial=n=>esc((n||'?').trim().charAt(0).toUpperCase());
+const avatar=(me,cls)=>me&&me.avatar?'<img class="av '+(cls||'')+'" src="/img/'+esc(me.avatar)+'" alt="">':'<div class="av '+(cls||'')+'">'+initial(me&&me.name)+'</div>';
+const shrink=(file,max)=>new Promise((ok,no)=>{const fr=new FileReader();fr.onerror=()=>no(new Error('Kunne ikke læse billedet'));fr.onload=()=>{const im=new Image();im.onerror=()=>no(new Error('Det er ikke et gyldigt billede'));im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.82))};im.src=fr.result};fr.readAsDataURL(file)});
+const upload=(kind,file,max)=>shrink(file,max).then(data=>j('/api/upload/'+CID,'POST',{kind:kind,data:data}));
+const outEl=document.getElementById('out');if(outEl)outEl.onclick=e=>{e.preventDefault();localStorage.removeItem('cid');location.href='/'};
+const gone=()=>{localStorage.removeItem('cid');location.replace('/login.html')};
+if(!CID)location.replace('/login.html');
+$('n2').classList.add('on');let ME=null;
+const sync=()=>{$('seek').disabled=!$('sens').checked;if(!$('sens').checked)$('seek').value=''};
+function fill(m){ME=m;$('cr').textContent=m.credits;$('avbox').innerHTML=avatar(m,'xl');$('rm').hidden=!m.avatar;
+ $('nick').value=m.nick;$('first').value=m.first;$('last').value=m.last;$('age').value=m.age;$('ci').value=m.city;$('likes').value=m.likes;$('about').value=m.about;$('sens').checked=m.sensitive;$('seek').value=m.seeking;$('lemail').value=m.email;$('vbox').hidden=!m.email;$('vbox').innerHTML=m.verified?'E-mail bekræftet ✓':'E-mailen er ikke bekræftet endnu. <a href="#" id="rsv" style="color:#c2307a">Send bekræftelsesmail igen</a>';$('nologin').hidden=m.hasLogin;$('curw').hidden=!m.hasLogin;sync()}
+async function load(){try{fill(await j('/api/me/'+CID))}catch(e){if(e.status===404)gone()}}
+$('sens').onchange=sync;
+$('chg').onclick=()=>$('file').click();
+$('file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;$('avmsg').textContent='';
+ if(!/^image\//.test(f.type)){$('avmsg').textContent='Vælg et billede.';return}
+ try{$('chg').disabled=true;await upload('avatar',f,480);await load()}catch(er){$('avmsg').textContent=er.message}$('chg').disabled=false};
+$('rm').onclick=async()=>{try{await j('/api/me/'+CID+'/avatar','DELETE');await load()}catch(er){$('avmsg').textContent=er.message}};
+$('save').onclick=async()=>{$('msg').className='';$('msg').textContent='';
+ try{const r=await j('/api/me/'+CID,'PUT',{nick:$('nick').value,first:$('first').value,last:$('last').value,age:$('age').value,city:$('ci').value,likes:$('likes').value,about:$('about').value,sensitive:$('sens').checked,seeking:$('seek').value});fill(r.me);$('msg').className='ok';$('msg').textContent='Gemt ✓'}
+ catch(er){$('msg').className='err';$('msg').textContent=er.message}};
+$('vbox').addEventListener('click',async e=>{if(e.target.id!=='rsv')return;e.preventDefault();try{await j('/api/me/'+CID+'/resend','POST',{});$('vbox').textContent='Vi har sendt en mail. Tjek også spam.'}catch(er){$('vbox').textContent=er.message}});
+$('lsave').onclick=async()=>{$('lmsg').className='';$('lmsg').textContent='';try{const r=await j('/api/me/'+CID+'/login','PUT',{email:$('lemail').value,password:$('lpw').value,current:$('lcur').value});$('lpw').value='';$('lcur').value='';fill(r.me);$('lmsg').className='ok';$('lmsg').textContent='Gemt ✓'}catch(er){$('lmsg').className='err';$('lmsg').textContent=er.message}};
+$('del').onclick=async e=>{e.preventDefault();if(!confirm('Alle dine data, billeder og samtaler slettes permanent. Fortsæt?'))return;await j('/api/me/'+CID,'DELETE');localStorage.removeItem('cid');location.href='/'};
+if(CID)load();</script></body></html>

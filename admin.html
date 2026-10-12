@@ -7,6 +7,7 @@
 <div class="card"><h2>Operator activity</h2>
 <p>From <input type="date" id="df"> To <input type="date" id="dt"> <select id="opf"><option value="">All operators</option></select> <button onclick="loadAct()">Show</button> <small id="ret"></small></p>
 <h3>Messages per operator</h3><div id="sumBox"></div><h3>Messages per day</h3><div id="dayBox"></div><h3>Message times (latest 200)</h3><div id="detBox" style="max-height:300px;overflow:auto"></div></div>
+<div class="card"><h2>Profiles</h2><p><a href="/profiler.html">Manage customer-visible profiles, photos and assigned operators →</a></p></div>
 <div class="card"><h2>Operators</h2><div id="ops"></div><p><input id="u" placeholder="username"><input id="p" type="password" placeholder="password (min 8)"><button onclick="addOp()">Add operator</button></p></div></main>
 <script>
 const T=sessionStorage.getItem('t');if(!T)location.href='/operator.html';

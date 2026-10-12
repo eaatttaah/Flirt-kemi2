@@ -43,21 +43,20 @@ app.post('/api/quickpay/callback', express.raw({ type: '*/*' }), (req, res) => {
   res.sendStatus(200);
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '3mb' }));
 const SITE = () => process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '';
 app.get('/robots.txt', (_, res) => res.type('text/plain').send('User-agent: *\nAllow: /\nDisallow: /api/\n' + (SITE() ? 'Sitemap: ' + SITE() + '/sitemap.xml\n' : '')));
 app.get('/sitemap.xml', (_, res) => res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
   + ['/', '/vilkaar.html', '/privatliv.html'].map(p => '<url><loc>' + SITE() + p + '</loc></url>').join('') + '</urlset>'));
-app.use((req, res, next) => { if (/^\/(chat|buy|demo-pay|operator|admin)\.html$|^\/api\//.test(req.path)) res.set('X-Robots-Tag', 'noindex'); next(); });
+app.use((req, res, next) => { if (/^\/(chat|buy|demo-pay|operator|admin|samtaler|profil|login|profiler)\.html$|^\/(api|img)\//.test(req.path)) res.set('X-Robots-Tag', 'noindex'); next(); });
 // Kun disse sider serveres (virker både med og uden public-mappe; udsætter aldrig server.js eller data)
-const PAGES = ['index', 'chat', 'buy', 'demo-pay', 'operator', 'admin', 'vilkaar', 'privatliv'];
+const PAGES = ['index', 'chat', 'buy', 'demo-pay', 'operator', 'admin', 'vilkaar', 'privatliv', 'samtaler', 'profil', 'login', 'profiler'];
 const PUB = fs.existsSync(path.join(__dirname, 'index.html')) ? __dirname : path.join(__dirname, 'public');   // nyeste filer i roden vinder
 app.get('/hero.jpg', (req, res) => { res.set('Cache-Control', 'public, max-age=86400'); res.sendFile(path.join(PUB, 'hero.jpg')); });
 app.get(['/', ...PAGES.map(p => '/' + p + '.html')], (req, res) =>
   res.sendFile(path.join(PUB, req.path === '/' ? 'index.html' : req.path.slice(1))));
 
 app.get('/api/packages', (_, res) => res.json(PACKAGES));
-app.get('/api/credits/:id', (req, res) => res.json({ credits: customer(req.params.id).credits }));
 
 app.post('/api/checkout', async (req, res) => {
   try {
@@ -90,9 +89,24 @@ app.post('/api/checkout', async (req, res) => {
 const DEMO = !QUICKPAY_API_KEY, COST = 10;
 db.convs ||= {};
 const now = () => Date.now(), iso = () => new Date().toISOString(), rid = n => crypto.randomBytes(n).toString('hex');
-const conv = id => (db.convs[id] ||= { msgs: [], notes: [], logs: { man: {}, woman: {} }, status: 'open', holdUntil: 0, assignee: '', started: iso() });
+const conv = (cid, pid) => (db.convs[cid + '~' + pid] ||= { cid, pid, msgs: [], notes: [], logs: { man: {}, woman: {} }, status: 'open', holdUntil: 0, assignee: '', started: iso() });
 const pending = c => c.status === 'open' && c.holdUntil < now() && c.msgs.length && c.msgs.at(-1).from === 'c';
 function fulfil(o) { if (o.status === 'paid') return; o.status = 'paid'; customer(o.customerId).credits += o.credits; save(); }
+
+// ---------- Profiler, uploads og migrering ----------
+db.profiles ||= {}; db.uploads ||= {};
+if (!Object.keys(db.profiles).length) db.profiles.maria = { name: 'JomfruMaria', tagline: 'Charmerende og legesyg' };
+for (const p of Object.values(db.profiles)) { p.bio ||= ''; p.avatar ||= ''; p.avatarSource ||= ''; p.gallery ||= []; p.operators ||= []; }
+for (const [k, c] of Object.entries(db.convs)) if (!c.cid) { c.cid = k; c.pid = 'maria'; db.convs[k + '~maria'] = c; delete db.convs[k]; }   // ældre samtaler
+const UP = path.join(process.env.DATA_DIR || __dirname, 'uploads'); fs.mkdirSync(UP, { recursive: true });
+save();
+const convKeys = cid => Object.keys(db.convs).filter(k => db.convs[k].cid === cid);
+function dropFile(f) { if (!f) return; delete db.uploads[f]; try { fs.unlinkSync(path.join(UP, f)); } catch {} }
+// Operatører med begrænset adgang ser kun de profiler, de er tildelt (ingen tildelte operatører = alle operatører)
+const canSee = (s, c) => { const p = db.profiles[c.pid] || {}; return s.role === 'admin' || !(p.operators || []).length || p.operators.includes(s.username); };
+const cv = (req, id) => { const c = db.convs[id]; return c && canSee(req.op, c) ? c : null; };
+const pubProfile = (id, p) => ({ id, name: p.name, tagline: p.tagline || '', bio: p.bio || '', avatar: p.avatar || '',
+  label: p.avatar && p.avatarSource === 'illustration' ? 'Illustration' : '' });
 
 app.post('/api/demo/pay', (req, res) => {           // kun når der ikke er Quickpay-nøgle
   const o = db.orders[req.body.orderId]; if (!DEMO || !o) return res.sendStatus(404);
@@ -100,32 +114,167 @@ app.post('/api/demo/pay', (req, res) => {           // kun når der ikke er Quic
 });
 
 // Kunde
+const cl = (v, n) => String(v || '').trim().slice(0, n);
+const pubMsg = m => ({ from: m.from, text: m.text, img: m.img || '', label: m.label || '', at: m.at });       // aldrig operatørnavn til kunden
+const meOut = (id, c) => ({ id, name: c.name, nick: c.nick || '', first: c.first || '', last: c.last || '', age: c.age || '', city: c.city || '',
+  likes: c.likes || '', about: c.about || '', seeking: c.sensitiveConsent ? (c.seeking || '') : '', sensitive: !!c.sensitiveConsent,
+  avatar: c.avatar || '', email: c.email || '', hasLogin: !!c.pw, verified: !!c.emailVerified, credits: c.credits, cost: COST });
+const cust = (req, res) => { const c = db.customers[req.params.cid]; if (!c) res.status(404).json({ error: 'Ukendt profil' }); return c; };
+
 app.post('/api/register', (req, res) => {
-  const b = req.body, cl = (v, n) => String(v || '').trim().slice(0, n), cs = b.consent || {};
+  const b = req.body, cs = b.consent || {};
   const first = cl(b.first, 40), last = cl(b.last, 40), nick = cl(b.nick, 40), age = parseInt(b.age, 10), name = nick || first;
   if (!name) return res.status(400).json({ error: 'Skriv et kaldenavn eller dit fornavn.' });
   if (!(age >= 18 && age <= 99)) return res.status(400).json({ error: 'Du skal være mindst 18 år.' });
   if (!cs.adult || !cs.data) return res.status(400).json({ error: 'Bekræft alder og samtykke for at fortsætte.' });
+  const email = cl(b.email, 120).toLowerCase(), pw = String(b.password || '');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return res.status(400).json({ error: 'Skriv en gyldig e-mail.' });
+  if (pw.length < 8) return res.status(400).json({ error: 'Adgangskoden skal være mindst 8 tegn.' });
+  if (Object.values(db.customers).some(x => x.email === email)) return res.status(409).json({ error: 'Der findes allerede en profil med den e-mail. Prøv at logge ind.' });
   const sens = !!cs.sensitive, id = rid(12);
-  db.customers[id] = { name, first, last, nick, age, city: cl(b.city, 40), likes: cl(b.likes, 300), seeking: sens ? cl(b.seeking, 60) : '',
+  db.customers[id] = { email, pw: mkPw(pw), name, first, last, nick, age, city: cl(b.city, 40), likes: cl(b.likes, 300), about: '', seeking: sens ? cl(b.seeking, 60) : '',
     credits: 0, consented: false, sensitiveConsent: sens, profileConsentAt: iso() };
-  conv(id); save(); res.json({ id });
+  sendVerify(req, db.customers[id]); save(); res.json({ id });
 });
-app.get('/api/chat/:id', (req, res) => {
-  const c = db.customers[req.params.id]; if (!c) return res.status(404).json({});
-  res.json({ name: c.name, credits: c.credits, cost: COST, msgs: conv(req.params.id).msgs });
+const mkPw = p => { const salt = rid(8); return { salt, hash: hashPw(p, salt) }; };
+const pwOk = (c, p) => { if (!c || !c.pw) return false; const a = Buffer.from(hashPw(String(p || ''), c.pw.salt)), b = Buffer.from(c.pw.hash); return a.length === b.length && crypto.timingSafeEqual(a, b); };
+
+// ---- E-mail (Brevo eller Resend via HTTPS; uden nøgle logges mailen i serverloggen) ----
+const MAIL_FROM = process.env.MAIL_FROM || '', MAIL_NAME = process.env.MAIL_NAME || 'Flirt & Kemi';
+async function sendMail(to, subject, text) {
+  try {
+    if (process.env.BREVO_API_KEY && MAIL_FROM) {
+      const r = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', headers: { 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({ sender: { name: MAIL_NAME, email: MAIL_FROM }, to: [{ email: to }], subject, textContent: text }) });
+      if (!r.ok) console.error('mail fejl (brevo)', r.status); return r.ok;
+    }
+    if (process.env.RESEND_API_KEY && MAIL_FROM) {
+      const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({ from: MAIL_NAME + ' <' + MAIL_FROM + '>', to: [to], subject, text }) });
+      if (!r.ok) console.error('mail fejl (resend)', r.status); return r.ok;
+    }
+    console.log('[MAIL ikke konfigureret] Til: ' + to + ' | ' + subject + '\n' + text); return false;
+  } catch (e) { console.error('mail fejl', e.message); return false; }
+}
+const sha = t => crypto.createHash('sha256').update(String(t)).digest('hex');
+const siteUrl = req => (SITE() || ((req.protocol || 'https') + '://' + req.get('host'))).replace(/\/$/, '');
+function mkToken(c, kind, ttlMs) { const t = rid(24); (c.tokens ||= {})[kind] = { h: sha(t), exp: now() + ttlMs }; return t; }
+function findByToken(kind, t) {
+  const h = sha(t); for (const [id, c] of Object.entries(db.customers)) { const k = c.tokens && c.tokens[kind]; if (k && k.h === h && k.exp > now()) return [id, c]; } return null;
+}
+const sendVerify = (req, c) => sendMail(c.email, 'Bekræft din e-mail hos Flirt & Kemi', 'Hej ' + (c.name || '') + '\n\nKlik på linket for at bekræfte din e-mail:\n' + siteUrl(req) + '/api/verify?t=' + mkToken(c, 'verify', 7 * 864e5) + '\n\nLinket virker i 7 dage. Har du ikke oprettet en profil, kan du ignorere denne mail.\n');
+const loginFails = new Map();
+const tooMany = k => { const f = loginFails.get(k); return !!f && f.n >= 10 && now() - f.t < 9e5; };
+const bump = k => { const f = loginFails.get(k); if (!f || now() - f.t >= 9e5) loginFails.set(k, { n: 1, t: now() }); else f.n++; };
+app.post('/api/login', (req, res) => {
+  const email = cl((req.body || {}).email, 120).toLowerCase(), k1 = 'ip:' + req.ip, k2 = 'em:' + email;
+  if (tooMany(k1) || tooMany(k2)) return res.status(429).json({ error: 'For mange forsøg. Prøv igen om lidt.' });
+  const hit = Object.entries(db.customers).find(([, c]) => c.email === email);
+  if (!hit || !pwOk(hit[1], req.body.password)) { bump(k1); bump(k2); return res.status(401).json({ error: 'Forkert e-mail eller adgangskode.' }); }
+  res.json({ id: hit[0] });
 });
-app.post('/api/chat/:id', (req, res) => {
-  const c = db.customers[req.params.id], text = String(req.body.text || '').trim().slice(0, 1000);
-  if (!c || !text) return res.status(400).json({ error: 'Ugyldig besked' });
+
+app.get('/api/verify', (req, res) => {
+  const hit = findByToken('verify', req.query.t);
+  if (!hit) return res.redirect('/login.html?verified=0');
+  hit[1].emailVerified = true; delete hit[1].tokens.verify; save(); res.redirect('/login.html?verified=1');
+});
+app.post('/api/me/:cid/resend', (req, res) => {
+  const c = cust(req, res); if (!c) return;
+  if (!c.email) return res.status(400).json({ error: 'Tilføj først en e-mail.' });
+  if (c.emailVerified) return res.json({ ok: true });
+  const k = 'rs:' + req.params.cid; if (tooMany(k)) return res.status(429).json({ error: 'Prøv igen om lidt.' }); bump(k);
+  sendVerify(req, c); save(); res.json({ ok: true });
+});
+app.post('/api/forgot', (req, res) => {
+  const email = cl((req.body || {}).email, 120).toLowerCase(), k1 = 'fi:' + req.ip, k2 = 'fe:' + email;
+  if (tooMany(k1) || tooMany(k2)) return res.status(429).json({ error: 'For mange forsøg. Prøv igen om lidt.' });
+  bump(k1); bump(k2);
+  const hit = email && Object.values(db.customers).find(c => c.email === email);
+  if (hit) { const t = mkToken(hit, 'reset', 36e5); save(); sendMail(email, 'Nulstil din adgangskode hos Flirt & Kemi', 'Hej\n\nKlik her for at vælge en ny adgangskode:\n' + siteUrl(req) + '/login.html?reset=' + t + '\n\nLinket virker i 1 time. Bad du ikke om det, kan du ignorere denne mail.\n'); }
+  res.json({ ok: true });   // samme svar uanset om e-mailen findes
+});
+app.post('/api/reset', (req, res) => {
+  const b = req.body || {}, pw = String(b.password || ''), k = 'rt:' + req.ip;
+  if (tooMany(k)) return res.status(429).json({ error: 'For mange forsøg. Prøv igen om lidt.' });
+  if (pw.length < 8) return res.status(400).json({ error: 'Adgangskoden skal være mindst 8 tegn.' });
+  const hit = findByToken('reset', b.token);
+  if (!hit) { bump(k); return res.status(400).json({ error: 'Linket er udløbet eller allerede brugt. Bed om et nyt.' }); }
+  hit[1].pw = mkPw(pw); hit[1].emailVerified = true; delete hit[1].tokens.reset; save(); res.json({ ok: true });
+});
+app.put('/api/me/:cid/login', (req, res) => {          // tilføj/skift e-mail og adgangskode
+  const c = cust(req, res); if (!c) return; const b = req.body || {};
+  const email = cl(b.email, 120).toLowerCase(), pw = String(b.password || '');
+  if (c.pw && !pwOk(c, b.current)) return res.status(403).json({ error: 'Nuværende adgangskode er forkert.' });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return res.status(400).json({ error: 'Skriv en gyldig e-mail.' });
+  if (pw.length < 8) return res.status(400).json({ error: 'Adgangskoden skal være mindst 8 tegn.' });
+  if (Object.entries(db.customers).some(([id, x]) => id !== req.params.cid && x.email === email)) return res.status(409).json({ error: 'E-mailen er allerede i brug.' });
+  if (c.email !== email) { c.emailVerified = false; sendVerify(req, c); } c.email = email; c.pw = mkPw(pw); save(); res.json({ ok: true, me: meOut(req.params.cid, c) });
+});
+app.get('/api/me/:cid', (req, res) => { const c = cust(req, res); if (c) res.json(meOut(req.params.cid, c)); });
+app.put('/api/me/:cid', (req, res) => {
+  const c = cust(req, res); if (!c) return; const b = req.body || {}, id = req.params.cid;
+  const nick = cl(b.nick, 40), first = cl(b.first, 40), age = parseInt(b.age, 10), sens = !!b.sensitive;
+  if (!(nick || first)) return res.status(400).json({ error: 'Skriv et kaldenavn eller dit fornavn.' });
+  if (!(age >= 18 && age <= 99)) return res.status(400).json({ error: 'Du skal være mindst 18 år.' });
+  Object.assign(c, { nick, first, last: cl(b.last, 40), age, city: cl(b.city, 40), likes: cl(b.likes, 300), about: cl(b.about, 600),
+    sensitiveConsent: sens, seeking: sens ? cl(b.seeking, 60) : '', name: nick || first });
+  if (!sens) for (const k of convKeys(id)) { delete db.convs[k].logs.man.Health; delete db.convs[k].logs.man['Sexual preference']; }   // samtykke trukket tilbage
+  save(); res.json({ ok: true, me: meOut(id, c) });
+});
+app.delete('/api/me/:cid/avatar', (req, res) => { const c = cust(req, res); if (!c) return; dropFile(c.avatar); c.avatar = ''; save(); res.json({ ok: true }); });
+app.delete('/api/me/:cid', (req, res) => {            // ret til sletning (GDPR). Ordrer beholdes pga. bogføringsloven.
+  const id = req.params.cid; if (!db.customers[id]) return res.json({ ok: true });
+  for (const k of convKeys(id)) delete db.convs[k];
+  for (const [f, u] of Object.entries(db.uploads)) if (u.cid === id) dropFile(f);
+  delete db.customers[id]; db.consents = db.consents.filter(x => x.customerId !== id); save(); res.json({ ok: true });
+});
+
+const upHits = new Map();
+app.post('/api/upload/:cid', (req, res) => {
+  const c = cust(req, res); if (!c) return; const cid = req.params.cid;
+  const h = (upHits.get(cid) || []).filter(t => t > now() - 36e5); if (h.length >= 30) return res.status(429).json({ error: 'For mange billeder. Prøv igen senere.' });
+  const pre = 'data:image/jpeg;base64,', s = String((req.body || {}).data || '');
+  if (!s.startsWith(pre)) return res.status(400).json({ error: 'Kun JPEG-billeder.' });
+  const buf = Buffer.from(s.slice(pre.length), 'base64');
+  if (buf.length < 200 || buf.length > 1.5e6 || buf[0] !== 0xFF || buf[1] !== 0xD8 || buf[2] !== 0xFF) return res.status(400).json({ error: 'Billedet er ugyldigt eller for stort.' });
+  h.push(now()); upHits.set(cid, h);
+  const kind = req.body.kind === 'avatar' ? 'avatar' : 'chat', file = rid(16) + '.jpg';
+  fs.writeFileSync(path.join(UP, file), buf); db.uploads[file] = { cid, kind, at: iso() };
+  if (kind === 'avatar') { dropFile(c.avatar); c.avatar = file; }
+  save(); res.json({ file });
+});
+app.get('/img/:file', (req, res) => {
+  if (!/^[a-f0-9]{32}\.jpg$/.test(req.params.file) || !db.uploads[req.params.file]) return res.sendStatus(404);
+  res.set({ 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' });
+  res.type('image/jpeg'); res.sendFile(req.params.file, { root: UP });
+});
+
+app.get('/api/convs/:cid', (req, res) => {
+  const id = req.params.cid, c = cust(req, res); if (!c) return;
+  const profiles = Object.entries(db.profiles).map(([pid, p]) => pubProfile(pid, p));
+  const convs = convKeys(id).map(k => db.convs[k]).filter(v => v.msgs.length && db.profiles[v.pid]).map(v => {
+    const m = v.msgs.at(-1), p = db.profiles[v.pid];
+    return { pid: v.pid, name: p.name, tagline: p.tagline || '', avatar: p.avatar || '', last: m.text || (m.img ? '📷 Billede' : ''), from: m.from, at: m.at, count: v.msgs.length };
+  }).sort((a, b) => b.at.localeCompare(a.at));
+  res.json({ me: meOut(id, c), profiles, convs });
+});
+app.get('/api/chat/:cid/:pid', (req, res) => {
+  const c = cust(req, res); if (!c) return; const p = db.profiles[req.params.pid];
+  if (!p) return res.status(404).json({ error: 'Ukendt profil' });
+  const v = db.convs[req.params.cid + '~' + req.params.pid];
+  res.json({ me: meOut(req.params.cid, c), profile: pubProfile(req.params.pid, p), msgs: v ? v.msgs.map(pubMsg) : [] });
+});
+app.post('/api/chat/:cid/:pid', (req, res) => {
+  const c = cust(req, res); if (!c) return; const id = req.params.cid, pid = req.params.pid, b = req.body || {};
+  if (!db.profiles[pid]) return res.status(404).json({ error: 'Ukendt profil' });
+  const text = cl(b.text, 1000), img = String(b.img || '');
+  if (!text && !img) return res.status(400).json({ error: 'Skriv en besked først.' });
+  if (img) { const u = db.uploads[img]; if (!u || u.cid !== id || u.kind !== 'chat') return res.status(400).json({ error: 'Ugyldigt billede.' }); }
   if (!c.consented) return res.status(403).json({ error: 'Giv samtykke under "Køb kreditter" først.' });
   if (c.credits < COST) return res.status(402).json({ error: 'Ikke nok kreditter.' });
-  const v = conv(req.params.id); c.credits -= COST; if (v.status === 'closed') v.status = 'open';
-  v.msgs.push({ from: 'c', text, at: iso() }); save(); res.json({ ok: true });
-});
-app.delete('/api/me/:id', (req, res) => {            // ret til sletning (GDPR)
-  const id = req.params.id; delete db.customers[id]; delete db.convs[id];
-  db.consents = db.consents.filter(x => x.customerId !== id); save(); res.json({ ok: true });
+  const v = conv(id, pid); c.credits -= COST; if (v.status === 'closed') v.status = 'open';
+  v.msgs.push({ from: 'c', text, img, at: iso() }); save(); res.json({ ok: true, credits: c.credits });
 });
 
 // Operatør
@@ -147,21 +296,24 @@ op.post('/login', (req, res) => {
 op.use((req, res, next) => { const s = sessions.get(req.get('x-op-token')); if (!s) return res.sendStatus(401); req.op = s; next(); });
 app.use('/api/op', op);
 op.get('/next', (req, res) => {
-  const queue = Object.entries(db.convs).filter(([, c]) => pending(c));
-  const cur = db.convs[req.query.cur];
+  const queue = Object.entries(db.convs).filter(([, c]) => pending(c) && canSee(req.op, c));
+  const cur = cv(req, req.query.cur);
   let id = cur && cur.status === 'open' && cur.holdUntil < now() ? req.query.cur : null;
   if (!id && queue.length) id = queue.sort((a, b) => a[1].msgs.at(-1).at.localeCompare(b[1].msgs.at(-1).at))[0][0];
   if (!id) return res.json({ none: true, queue: 0 });
-  const c = db.convs[id], u = db.customers[id];
-  res.json({ id, queue: queue.length, conv: c, customer: { name: u.name, first: u.first, last: u.last, age: u.age, city: u.city, likes: u.likes, seeking: u.sensitiveConsent ? u.seeking : '', credits: u.credits, sensitive: u.sensitiveConsent },
+  const c = db.convs[id], u = db.customers[c.cid]; if (!u) return res.json({ none: true, queue: 0 });
+  res.json({ id, queue: queue.length, profile: (db.profiles[c.pid] || {}).name || '', gallery: ((db.profiles[c.pid] || {}).gallery || []).map(g => ({ file: g.file, label: g.source === 'illustration' ? 'Illustration' : '' })), conv: c, customer: { about: u.about || '', avatar: u.avatar || '', name: u.name, first: u.first, last: u.last, age: u.age, city: u.city, likes: u.likes, seeking: u.sensitiveConsent ? u.seeking : '', credits: u.credits, sensitive: u.sensitiveConsent },
     inCount: c.msgs.filter(m => m.from === 'c').length, outCount: c.msgs.filter(m => m.from === 'm').length });
 });
 op.post('/send', (req, res) => {
-  const c = db.convs[req.body.id], t = String(req.body.text || '').trim().slice(0, 1000);
-  if (!c || !t) return res.sendStatus(400); c.msgs.push({ from: 'm', text: t, by: req.op.username, at: iso() }); (db.opLog ||= []).push({ op: req.op.username, at: iso() }); save(); res.json({ ok: true });
+  const c = cv(req, req.body.id), t = cl(req.body.text, 1000), img = String(req.body.img || '');
+  if (!c || (!t && !img)) return res.sendStatus(400);
+  let label = '';
+  if (img) { const u = db.uploads[img]; if (!u || u.kind !== 'gallery' || u.pid !== c.pid) return res.status(400).json({ error: 'Billedet hører ikke til denne profil.' }); label = u.source === 'illustration' ? 'Illustration' : ''; }
+  c.msgs.push({ from: 'm', text: t, img, label, by: req.op.username, at: iso() }); (db.opLog ||= []).push({ op: req.op.username, at: iso() }); save(); res.json({ ok: true });
 });
 op.post('/note', (req, res) => {
-  const c = db.convs[req.body.id]; if (!c) return res.sendStatus(404);
+  const c = cv(req, req.body.id); if (!c) return res.sendStatus(404);
   const { action, noteId, text, important, until } = req.body, n = c.notes.find(x => x.id === noteId);
   if (action === 'add') c.notes.push({ id: rid(4), text: String(text).slice(0, 500), important: !!important, until: until || '', at: iso() });
   if (action === 'edit' && n) n.text = String(text).slice(0, 500);
@@ -169,14 +321,14 @@ op.post('/note', (req, res) => {
   save(); res.json({ ok: true });
 });
 op.post('/log', (req, res) => {
-  const { id, person, category, text } = req.body, c = db.convs[id], u = db.customers[id];
-  if (!c || !text || !['man', 'woman'].includes(person)) return res.sendStatus(400);
+  const { id, person, category, text } = req.body, c = cv(req, id), u = c && db.customers[c.cid];
+  if (!c || !u || !text || !['man', 'woman'].includes(person)) return res.sendStatus(400);
   if (person === 'man' && ['Health', 'Sexual preference'].includes(category) && !u.sensitiveConsent)
     return res.status(403).json({ error: 'Kunden har ikke givet samtykke til denne kategori.' });
   (c.logs[person][category] ||= []).push({ text: String(text).slice(0, 500), at: iso() }); save(); res.json({ ok: true });
 });
 op.post('/status', (req, res) => {
-  const c = db.convs[req.body.id]; if (!c) return res.sendStatus(404);
+  const c = cv(req, req.body.id); if (!c) return res.sendStatus(404);
   const { status, minutes, assignee } = req.body;
   if (status === 'hold') c.holdUntil = now() + (Number(minutes) || 15) * 60000;
   else if (status === 'panic' || status === 'closed') c.status = status;
@@ -202,7 +354,7 @@ op.get('/admin/activity', admin, (req, res) => {
   res.json({ retention_days: RET, entries: list.slice(-50000).map(x => [x.op, x.at]) });
 });
 op.get('/admin/panic', admin, (_, res) => res.json(Object.entries(db.convs).filter(([, c]) => c.status === 'panic')
-  .map(([id, c]) => ({ id, name: db.customers[id]?.name, msgs: c.msgs.slice(-20), notes: c.notes }))));
+  .map(([id, c]) => ({ id, name: (db.customers[c.cid] || {}).name, profile: (db.profiles[c.pid] || {}).name, msgs: c.msgs.slice(-20), notes: c.notes }))));
 op.post('/admin/release', admin, (req, res) => {
   const c = db.convs[req.body.id]; if (!c) return res.sendStatus(404);
   c.status = req.body.close ? 'closed' : 'open'; save(); res.json({ ok: true });
@@ -216,9 +368,59 @@ op.post('/admin/operators', admin, (req, res) => {
 });
 op.delete('/admin/operators/:u', admin, (req, res) => {
   if (req.params.u === 'admin') return res.sendStatus(400);
-  delete db.operators[req.params.u]; for (const [t, s] of sessions) if (s.username === req.params.u) sessions.delete(t);
+  delete db.operators[req.params.u]; for (const p of Object.values(db.profiles)) p.operators = (p.operators || []).filter(x => x !== req.params.u);
+  for (const [t, s] of sessions) if (s.username === req.params.u) sessions.delete(t);
   save(); res.json({ ok: true });
 });
 
+
+// Moderator kan fjerne et billede, en kunde har sendt (fx ulovligt indhold)
+op.post('/delmsg', (req, res) => {
+  const c = cv(req, req.body.id), m = c && c.msgs[req.body.idx]; if (!m) return res.sendStatus(404);
+  const u = db.uploads[m.img]; if (u && u.kind === 'chat') dropFile(m.img); m.img = ''; if (!m.text) m.text = '[Billede fjernet af moderator]'; save(); res.json({ ok: true });
+});
+// Admin: profiler kunderne kan skrive med. Fotos kræver en erklæring og illustrationer mærkes over for kunderne.
+const opNames = () => Object.entries(db.operators).filter(([, o]) => o.role === 'operator').map(([u]) => u);
+const adminProfile = (id, p) => ({ id, name: p.name, tagline: p.tagline || '', bio: p.bio || '', avatar: p.avatar || '', avatarSource: p.avatarSource || '',
+  gallery: p.gallery || [], operators: p.operators || [] });
+const profileFields = b => ({ name: cl(b.name, 30), tagline: cl(b.tagline, 80), bio: cl(b.bio, 600),
+  operators: [...new Set((Array.isArray(b.operators) ? b.operators : []).map(String).filter(u => opNames().includes(u)))] });
+op.get('/admin/profiles', admin, (_, res) => res.json({ profiles: Object.entries(db.profiles).map(([id, p]) => adminProfile(id, p)), operators: opNames() }));
+op.post('/admin/profiles', admin, (req, res) => {
+  const f = profileFields(req.body || {}); if (f.name.length < 2) return res.status(400).json({ error: 'Name: min 2 characters.' });
+  const id = rid(4); db.profiles[id] = { ...f, avatar: '', avatarSource: '', gallery: [] }; save(); res.json({ ok: true, id });
+});
+op.put('/admin/profiles/:id', admin, (req, res) => {
+  const p = db.profiles[req.params.id]; if (!p) return res.sendStatus(404);
+  const f = profileFields(req.body || {}); if (f.name.length < 2) return res.status(400).json({ error: 'Name: min 2 characters.' });
+  Object.assign(p, f); save(); res.json({ ok: true });
+});
+op.post('/admin/profiles/:id/photo', admin, (req, res) => {
+  const p = db.profiles[req.params.id]; if (!p) return res.sendStatus(404); const b = req.body || {};
+  if (b.attest !== true || !['own', 'illustration'].includes(b.source)) return res.status(400).json({ error: 'Choose the image type and confirm the statement.' });
+  const pre = 'data:image/jpeg;base64,', s = String(b.data || '');
+  if (!s.startsWith(pre)) return res.status(400).json({ error: 'JPEG only.' });
+  const buf = Buffer.from(s.slice(pre.length), 'base64');
+  if (buf.length < 200 || buf.length > 1.5e6 || buf[0] !== 0xFF || buf[1] !== 0xD8 || buf[2] !== 0xFF) return res.status(400).json({ error: 'Invalid or too large image.' });
+  const kind = b.kind === 'avatar' ? 'persona' : 'gallery', file = rid(16) + '.jpg';
+  fs.writeFileSync(path.join(UP, file), buf);
+  db.uploads[file] = { cid: null, pid: req.params.id, kind, source: b.source, attested: true, by: req.op.username, at: iso() };
+  if (kind === 'persona') { dropFile(p.avatar); p.avatar = file; p.avatarSource = b.source; }
+  else (p.gallery ||= []).push({ file, source: b.source });
+  save(); res.json({ ok: true, file });
+});
+op.delete('/admin/profiles/:id/photo/:file', admin, (req, res) => {
+  const p = db.profiles[req.params.id]; if (!p) return res.sendStatus(404); const f = req.params.file;
+  if (p.avatar === f) { p.avatar = ''; p.avatarSource = ''; dropFile(f); }
+  else if ((p.gallery || []).some(g => g.file === f)) { p.gallery = p.gallery.filter(g => g.file !== f); dropFile(f); }
+  else return res.sendStatus(404);
+  save(); res.json({ ok: true });
+});
+op.delete('/admin/profiles/:id', admin, (req, res) => {
+  const p = db.profiles[req.params.id]; if (!p) return res.sendStatus(404);
+  if (Object.keys(db.profiles).length < 2) return res.status(409).json({ error: 'Cannot delete the last profile.' });
+  if (Object.values(db.convs).some(c => c.pid === req.params.id)) return res.status(409).json({ error: 'This profile has conversations and cannot be deleted.' });
+  dropFile(p.avatar); (p.gallery || []).forEach(g => dropFile(g.file)); delete db.profiles[req.params.id]; save(); res.json({ ok: true });
+});
 
 app.listen(PORT, () => console.log('http://localhost:' + PORT));

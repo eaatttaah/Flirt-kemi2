@@ -12,7 +12,7 @@ button{width:100%;margin-top:16px;padding:14px;border:0;border-radius:5px;backgr
 button:disabled{background:#cdb8c9;cursor:not-allowed}#msg{margin-top:12px;color:#c0392b}.ok{color:#1e8e4e!important}
 small{color:#7a6a80}
 </style></head><body><main><div class="card">
-<h1>Køb kreditter</h1><p><a href="/chat.html" style="color:#c2307a">← Tilbage til chat</a></p>
+<h1>Køb kreditter</h1><p><a href="/samtaler.html" style="color:#c2307a">← Tilbage til samtaler</a></p>
 <div id="status"></div>
 <div class="notice"><b>Vigtigt:</b> Profilerne på tjenesten er fiktive og styres af vores medarbejdere (moderatorer). Du skriver ikke med en rigtig person, der er den, profilen udgiver sig for at være. Tjenesten er kun for personer over 18 år.</div>
 <div>1 besked = <b id="rate">10</b> kreditter. Priser er i danske kroner (DKK).</div>
@@ -27,7 +27,7 @@ small{color:#7a6a80}
 <div id="msg"></div>
 </div></main>
 <script>
-const CUSTOMER_ID=localStorage.getItem('cid')||'';if(!CUSTOMER_ID)location.href='/chat.html';
+const CUSTOMER_ID=localStorage.getItem('cid')||'';if(!CUSTOMER_ID)location.href='/login.html';
 const $=id=>document.getElementById(id);
 const q=new URLSearchParams(location.search).get('status');
 if(q==='ok'){$('status').innerHTML='<p class="ok" style="color:#1e8e4e">Tak! Dine kreditter bliver lagt til, når betalingen er bekræftet.</p>'}

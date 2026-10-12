@@ -97,6 +97,7 @@
       </div>
       <div class="notes"><span>View Old Top Notes</span><button type="button" class="top-note-btn" onclick="openNoteModal()">+ Add Top Notes</button></div>
       <div id="hist" style="height:150px;overflow:auto;padding:8px 16px"></div>
+      <div id="gal" style="display:flex;gap:6px;overflow-x:auto;padding:4px 16px"></div>
       <div class="compose"><textarea id="msg" placeholder="Type Message ..."></textarea><button class="send" onclick="send()">Send</button></div>
       <div class="bottom"><button class="iconbtn">📷</button><div><b>In</b><div class="count">169</div></div><div><b>Out</b><div class="count">265</div></div><button class="quit">Quit<br>Chat</button><div class="queue"><b>Messages in queue: 4</b><br>Conversation Started: 23 May 2026, 09:24 AM</div></div>
       <div class="customer-msg">Customer: Example message / newest incoming message</div>
@@ -254,19 +255,19 @@ function renderLogs(box,obj){box.innerHTML=logCategories.map(c=>{const e=(obj||{
 async function poll(){const d=await api('/next?cur='+(cur||''));D=d;
  const q=d.queue||0,s=JSON.stringify(d);if(s===sig)return;sig=s;
  if(d.none){cur=null;$('.queue').innerHTML='<b>Messages in queue: 0</b>';$('.customer-msg').textContent='Ingen ventende samtaler';$('#hist').innerHTML='';$('.logs').innerHTML='';$('.facts').innerHTML='';return}
- cur=d.id;const c=d.conv,u=d.customer,today=new Date().toISOString().slice(0,10);
- $('.badge').textContent='● '+u.credits+' credits';$('.facts').innerHTML=[['Name',u.name],['Full name',[u.first,u.last].filter(Boolean).join(' ')],['Age',u.age],['City',u.city],['Likes',u.likes],['Looking for',u.seeking]].filter(x=>x[1]).map(x=>'<div><strong>'+x[0]+':</strong> '+esc(String(x[1]))+'</div>').join('');
- $('.queue').innerHTML='<b>Messages in queue: '+q+'</b><br>Conversation Started: '+fmt(c.started);
+ cur=d.id;renderGal();const c=d.conv,u=d.customer,today=new Date().toISOString().slice(0,10);
+ $('.badge').textContent='● '+u.credits+' credits';$('.facts').innerHTML=[['Name',u.name],['Full name',[u.first,u.last].filter(Boolean).join(' ')],['Age',u.age],['City',u.city],['Likes',u.likes],['About',u.about],['Looking for',u.seeking]].filter(x=>x[1]).map(x=>'<div><strong>'+x[0]+':</strong> '+esc(String(x[1]))+'</div>').join('')+(u.avatar?'<div><img src="/img/'+u.avatar+'" style="width:84px;height:84px;object-fit:cover;border-radius:50%;margin-top:6px"></div>':'');
+ $('.queue').innerHTML='<b>Messages in queue: '+q+'</b><br>Writing as: '+esc(d.profile||'-')+'<br>Conversation Started: '+fmt(c.started);
  document.querySelectorAll('.count')[0].textContent=d.inCount;document.querySelectorAll('.count')[1].textContent=d.outCount;
- $('#hist').innerHTML=c.msgs.map(m=>'<div style="margin:4px 0;text-align:'+(m.from==='m'?'right':'left')+'"><span style="display:inline-block;padding:6px 10px;border-radius:10px;background:'+(m.from==='m'?'#477aa7':'#48515a')+'">'+esc(m.text)+'</span></div>').join('');$('#hist').scrollTop=1e9;
- const lastC=[...c.msgs].reverse().find(m=>m.from==='c');$('.customer-msg').textContent='Customer: '+(lastC?lastC.text:'-');
+ $('#hist').innerHTML=c.msgs.map((m,i)=>'<div style="margin:4px 0;text-align:'+(m.from==='m'?'right':'left')+'"><span style="display:inline-block;padding:6px 10px;border-radius:10px;background:'+(m.from==='m'?'#477aa7':'#48515a')+'">'+(m.img?'<a href="/img/'+m.img+'" target="_blank"><img src="/img/'+m.img+'" style="display:block;max-width:180px;max-height:180px;border-radius:8px;margin-bottom:4px"></a>'+(m.from==='c'?'<a href="#" data-del="'+i+'" style="font-size:11px;color:#ffb3ab">Fjern billede</a>':'')+'<br>':'')+esc(m.text)+'</span></div>').join('');$('#hist').scrollTop=1e9;
+ const lastC=[...c.msgs].reverse().find(m=>m.from==='c');$('.customer-msg').textContent='Customer: '+(lastC?(lastC.text||'📷 Billede'):'-');
  const imp=n=>n.important&&(!n.until||n.until>=today);
  $('.logs').innerHTML=[...c.notes].sort((a,b)=>imp(b)-imp(a)).map(n=>'<div class="log" data-id="'+n.id+'">'+(imp(n)?'<span class="pin">📌</span>':'')+'<b>'+fmt(n.at)+'</b> &nbsp; '+esc(n.text)+(imp(n)?'<small style="display:block;color:#cfd5da">Pinned until '+n.until+'</small>':'')+'<span class="edit" data-a="edit">✎</span><span class="delete" data-a="del">▮</span></div>').join('');
  renderLogs($('#manLogs'),c.logs.man);renderLogs($('#womanLogs'),c.logs.woman)}
 $('.logs').addEventListener('click',async e=>{const a=e.target.dataset.a,row=e.target.closest('.log');if(!a||!row)return;let text;
  if(a==='edit'){text=prompt('Rediger note',row.childNodes[2]?.textContent.trim());if(!text)return}else if(!confirm('Slet noten?'))return;
  await api('/note',{action:a,id:cur,noteId:row.dataset.id,text});refresh()});
-async function send(){const t=$('#msg'),v=t.value.trim();if(!v||!cur)return;t.value='';await api('/send',{id:cur,text:v});refresh()}
+async function send(){const t=$('#msg'),v=t.value.trim();if((!v&&!selImg)||!cur)return;t.value='';const im=selImg;selImg='';renderGal();const r=await api('/send',{id:cur,text:v,img:im});if(r&&r.error)alert(r.error);refresh()}
 function panic(){if(cur&&confirm('Send samtalen til Panic Room?'))api('/status',{id:cur,status:'panic'}).then(()=>{cur=null;refresh()})}
 function hold(){const m=cur&&prompt('Hold i minutter (5 / 15 / 30 / 60 / 120)','15');if(m)api('/status',{id:cur,status:'hold',minutes:+m}).then(refresh)}
 $('.quit').onclick=()=>cur&&api('/status',{id:cur,status:'closed'}).then(()=>{cur=null;refresh()});
@@ -278,11 +279,15 @@ const _open=openProfileLog;openProfileLog=function(p){if(!cur)return alert('Inge
  if(p==='man'&&!D.customer.sensitive)[...$('#logCategory').options].forEach(o=>{if(['Health','Sexual preference'].includes(o.value))o.remove()})};
 async function saveProfileLog(){const text=$('#logComment').value.trim();if(!text)return alert('Skriv først en note.');
  const r=await api('/log',{id:cur,person:activeLogPerson,category:$('#logCategory').value,text});if(r.error)return alert(r.error);closeProfileLog();refresh()}
-document.querySelectorAll('.nav a')[2].textContent='Admin';
+document.querySelectorAll('.nav a')[2].textContent='Admin';if(sessionStorage.getItem('role')==='operator')document.querySelectorAll('.nav a')[2].style.display='none';
 document.querySelectorAll('.nav a').forEach((a,i)=>a.onclick=async e=>{e.preventDefault();if(i===2)return location.href='/admin.html';if(i>0){const s=await api('/stats'+(i===3?'?me=1':''));alert(Object.entries(s).map(([k,v])=>k.replace('_',' ')+': '+v).join('\n'))}});
+$('#hist').addEventListener('click',async e=>{const i=e.target.dataset.del;if(i===undefined)return;e.preventDefault();if(!confirm('Fjern dette billede?'))return;await api('/delmsg',{id:cur,idx:+i});refresh()});
+let selImg='';
+function renderGal(){const g=(D&&D.gallery)||[];$('#gal').innerHTML=g.length?g.map(x=>'<img data-g="'+x.file+'" src="/img/'+x.file+'" title="'+(x.label||'Photo')+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer;flex:none;border:3px solid '+(selImg===x.file?'#ff7eb6':'transparent')+'">').join(''):''}
+$('#gal').addEventListener('click',e=>{const f=e.target.dataset.g;if(!f)return;selImg=selImg===f?'':f;renderGal()});
 async function boot(){while(!TOKEN){const u=prompt('Username'),p=u===null?null:prompt('Password');if(p===null)return;
  const r=await fetch('/api/op/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
- if(r.ok){TOKEN=(await r.json()).token;sessionStorage.setItem('t',TOKEN)}else alert(r.status===429?'For mange forsøg. Prøv senere.':'Wrong username or password')}
+ if(r.ok){const jr=await r.json();TOKEN=jr.token;sessionStorage.setItem('t',TOKEN);sessionStorage.setItem('role',jr.role)}else alert(r.status===429?'For mange forsøg. Prøv senere.':'Wrong username or password')}
  poll();setInterval(poll,2500)}boot();
 </script>
 </body>
