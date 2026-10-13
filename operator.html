@@ -55,14 +55,14 @@
 .note-close{background:transparent;color:#fff;border:1px solid #c6ccd0;padding:14px;font-size:18px;cursor:pointer}
 
 @media(max-width:1100px){.layout{grid-template-columns:240px 1fr}.details{display:none}.columns{grid-template-columns:260px 1fr}.hamb{margin-left:115px}}
-@media(max-width:800px){.layout{grid-template-columns:0 1fr}.side{display:none}.columns{grid-template-columns:1fr}.customer{display:none}.hamb{margin-left:10px}}
+.getnext{background:#2b9a5b;font-weight:bold}.getnext:disabled{opacity:.5}#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#2b7a4b;color:#fff;padding:10px 18px;border-radius:8px;z-index:2000;display:none}body.menu .details{display:block}@media(max-width:800px){body.menu .side{display:block;position:fixed;left:0;top:64px;bottom:0;width:220px;z-index:60;box-shadow:0 0 30px #000a}body.menu .customer{display:block}.layout{grid-template-columns:0 1fr}.side{display:none}.columns{grid-template-columns:1fr}.customer{display:none}.hamb{margin-left:10px}}
 </style>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"></head>
 <body>
-<header class="top"><div class="logo">Mindate<br><span>Operator</span></div><div class="hamb">☰</div><div class="agent">Agent&nbsp;&nbsp; ↪</div></header>
+<header class="top"><div class="logo">Flirt &amp; Kemi<br><span>Operator</span></div><div class="hamb" id="hamb" role="button" title="Menu">☰</div><div class="agent" id="agent" role="button" title="Log ud" style="cursor:pointer"><span id="who">Agent</span>&nbsp;&nbsp; ↪ <small>Log ud</small></div></header>
 <div class="layout">
 <aside class="side">
-  <div class="profile"><div class="avatar"></div><b>Moderator</b></div>
+  <div class="profile"><div class="avatar"></div><b id="mod">Moderator</b></div>
   <div id="cd" hidden style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:50;color:#fff;padding:6px 14px;border-radius:16px;font-size:13px;box-shadow:0 2px 10px #0006"></div>
   <nav class="nav">
     <a href="#" class="active">◉ Dashboard</a><a href="#">◉ Chat Statistics</a><a href="#">● Affiliates</a><a href="#">▣ My Statistics</a>
@@ -74,13 +74,8 @@
     <section class="customer">
       <div class="panel-title">Customer Details</div>
       <div class="customer-body">
-        <div class="customer-img">👤</div><span class="badge">● 1050 credits</span>
-        <div class="facts">
-          <div><strong>Name:</strong> Example Customer</div>
-          <div><strong>City:</strong> København</div>
-          <div><strong>Relation Status:</strong> Single</div>
-          <div><strong>Profession:</strong> Professional</div>
-          <div><strong>Children:</strong> 0</div>
+        <div class="customer-img">👤</div><span class="badge">● –</span>
+        <div class="facts"></div>
         </div>
       </div>
       <div class="profile-log-panel">
@@ -89,35 +84,23 @@
       </div>
     </section>
     <section class="chat">
-      <div class="chat-head"><div><b>Chats & Messages</b><br>Domain: <span class="domain">example.dk</span></div>
-        <div class="actions"><button class="btn bluebtn">Assign To ▾</button><button class="btn redbtn" onclick="panic()">Add to Panicroom</button><button class="btn hold" onclick="hold()">Hold</button></div>
+      <div class="chat-head"><div><b>Chats & Messages</b><br>Profile: <span class="domain" id="prof">–</span></div>
+        <div class="actions"><button class="btn getnext" id="getnext">Get Next Message</button><button class="btn hold" id="holdb" onclick="holdModal()">Hold</button><button class="btn redbtn" id="helpb" onclick="helpModal()">Request Admin Help</button></div>
       </div>
-      <div class="logs">
-        <div class="log"><span class="pin">📌</span><b>07 Sep 26<br>14:22</b> &nbsp; Customer note / conversation history shown here.<span class="edit">✎</span><span class="delete">▮</span></div>
-        <div class="log"><span class="pin">📌</span><b>11 Aug 26<br>05:46</b> &nbsp; Previous conversation log and moderator note.<span class="edit">✎</span><span class="delete">▮</span></div>
-      </div>
-      <div class="notes"><span>View Old Top Notes</span><button type="button" class="top-note-btn" onclick="openNoteModal()">+ Add Top Notes</button></div>
+      <div id="counts" style="padding:8px 18px;font-size:13px;color:#cfd5da;border-bottom:1px solid #4d5760"></div><div id="taskbar" hidden style="margin:0;padding:10px 18px;font-weight:bold"></div><div class="logs"></div>
+      <div class="notes"><span id="oldn" style="cursor:pointer;text-decoration:underline">View Old Top Notes</span><button type="button" class="top-note-btn" onclick="openNoteModal()">+ Add Top Notes</button></div>
       <div id="hist" translate="no" style="height:150px;overflow:auto;padding:8px 16px"></div>
       <div id="gal" style="display:flex;gap:6px;overflow-x:auto;padding:4px 16px"></div>
       <div class="compose"><textarea id="msg" placeholder="Type Message ..."></textarea><button class="send" onclick="send()">Send</button></div>
-      <div class="bottom"><button class="iconbtn">📷</button><div><b>In</b><div class="count">169</div></div><div><b>Out</b><div class="count">265</div></div><button class="quit">Quit<br>Chat</button><div class="queue"><b>Messages in queue: 4</b><br>Conversation Started: 23 May 2026, 09:24 AM</div></div>
-      <div class="customer-msg">Customer: Example message / newest incoming message</div>
+      <div class="bottom"><button class="iconbtn" id="aib" title="AI-forslag" hidden>AI</button><button class="iconbtn" id="camb" title="Delte billeder for profilen">📷</button><div><b>In</b><div class="count">0</div></div><div><b>Out</b><div class="count">0</div></div><button class="quit">Quit<br>Chat</button><button class="quit" id="donebtn" hidden style="background:#2b7a4b">Complete<br>Task</button><div class="queue"><b>Messages in queue: 0</b></div></div>
+      <div class="customer-msg">Ingen ventende samtaler</div>
     </section>
   </div>
 </main>
 <section class="details">
-  <div class="panel-title">Escort Details</div>
+  <div class="panel-title">Profile Details</div>
   <div class="body">
-    <div class="detail-photo"></div>
-    <div class="detail-line"><b>Region:</b> Not selected</div>
-    <div class="detail-line"><b>Children:</b> 0</div>
-    <div class="detail-line"><b>Date of birth:</b> 1992</div>
-    <div class="detail-line"><b>Profession:</b> IT support</div>
-    <div class="detail-line"><b>Relation Status:</b> Single</div>
-    <div class="detail-line"><b>Massmail:</b> No</div>
-    <div class="detail-line"><b>Visit:</b> No</div>
-    <div class="detail-line"><b>Like:</b> Yes</div>
-    <div class="detail-line"><b>Favorite:</b> No</div>
+    <div class="detail-photo" id="dph"></div><div class="detail-line"><b>Name:</b> <span id="dn">–</span></div><div class="detail-line"><b>Tagline:</b> <span id="dt">–</span></div><div class="detail-line"><b>Bio:</b> <span id="db">–</span></div><div class="detail-line"><b>Shared photos:</b> <span id="dp">0</span></div><div class="detail-line"><b>Photo label:</b> <span id="dl">–</span></div>
   </div>
   <div class="profile-log-panel">
     <button class="newlogs" type="button" onclick="openProfileLog('woman')">🔖 ADD NEW LOGS</button>
@@ -126,6 +109,14 @@
 </section>
 </div>
 
+<div id="toast"></div>
+<div class="note-overlay" id="holdOverlay"><div class="note-modal" style="width:min(380px,92vw)"><h2>Hold</h2><p>Samtalen fjernes fra køen og vender automatisk tilbage, når tiden er gået.</p><div id="holdBtns" style="display:flex;flex-wrap:wrap;gap:8px"></div><div class="note-buttons" style="margin-top:16px"><button class="note-close" onclick="document.getElementById('holdOverlay').style.display='none'">CLOSE</button></div></div></div>
+<div class="note-overlay" id="helpOverlay"><div class="note-modal" style="width:min(440px,92vw)"><h2>Request Admin Help</h2><p>Samtalen sendes til administratoren (Panic Room).</p><textarea id="helpText" placeholder="Hvad har du brug for hjælp til? (valgfrit)"></textarea><div class="note-buttons"><button class="note-save" onclick="sendHelp()">SEND TIL ADMIN</button><button class="note-close" onclick="document.getElementById('helpOverlay').style.display='none'">CLOSE</button></div></div></div>
+<div class="note-overlay" id="loginOverlay"><form class="note-modal" id="loginForm" style="width:min(380px,92vw)"><h2>Log ind</h2>
+<input id="lu" placeholder="Brugernavn" autocomplete="username" style="width:100%;padding:11px;margin-bottom:10px;background:#3a434b;border:1px solid #59636c;color:#fff;border-radius:4px;font-size:16px">
+<input id="lp" type="password" placeholder="Adgangskode" autocomplete="current-password" style="width:100%;padding:11px;margin-bottom:10px;background:#3a434b;border:1px solid #59636c;color:#fff;border-radius:4px;font-size:16px">
+<div id="le" style="color:#ff8a80;min-height:22px;margin-bottom:8px"></div><button class="note-save" type="submit" style="width:100%">LOG IND</button></form></div>
+<div class="note-overlay" id="infoOverlay"><div class="note-modal" style="width:min(420px,92vw)"><h2 id="infoT"></h2><div id="infoB" style="line-height:2"></div><div class="note-buttons" style="margin-top:18px"><button class="note-close" onclick="document.getElementById('infoOverlay').style.display='none'">CLOSE</button></div></div></div>
 <div class="note-overlay" id="logOverlay"><div class="note-modal log-modal"><h2>Add Log +</h2><div class="party-line"><span id="logPartyLeft"></span><span id="logPartyRight"></span></div><select id="logCategory"></select><div class="log-count">Logs: <span id="logCount">0</span></div><textarea id="logComment" placeholder="Comment"></textarea><div class="note-buttons" style="margin-top:16px"><button class="note-save" onclick="saveProfileLog()">SAVE CHANGES</button><button class="note-close" onclick="closeProfileLog()">CLOSE</button></div></div></div>
 <div class="note-overlay" id="noteOverlay">
   <div class="note-modal">
@@ -149,7 +140,7 @@
 <script>
 
 
-const logCategories = ["Name","City","Work","Family","Personal preference","Health","Hobby","Transportation","Sexual preference","Holiday","Other"];
+const logCategories = ["Name","City","Work","Family","Personal preferences","Health","Hobbies","Transportation","Sexual preferences","Holidays","Other"];
 let activeLogPerson = "woman";
 
 function initCategoryLists(){
@@ -244,52 +235,78 @@ function escapeHtml(s){
 }
 
 function send(){const t=document.getElementById('msg');if(!t.value.trim())return;alert('Prototype: message added to the conversation.');t.value='';}
-function panic(){alert('Prototype: conversation sent to Panic Room for admin review.');}
-function hold(){alert('Prototype: choose a hold duration (5 / 15 / 30 / 60 / 120 min) in the production system.');}
 </script>
 <script>
-let DL=0;let TOKEN=sessionStorage.getItem('t')||'';
+let DL=0,OLDN=false,ME=sessionStorage.getItem('user')||'';let TOKEN=sessionStorage.getItem('t')||'';
 let cur=null,sig='',D=null;const $=s=>document.querySelector(s),esc=escapeHtml,fmt=t=>new Date(t).toLocaleString('da-DK',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 const api=(p,b)=>fetch('/api/op'+p,{method:b?'POST':'GET',headers:{'x-op-token':TOKEN,'Content-Type':'application/json'},body:b&&JSON.stringify(b)}).then(r=>{if(r.status===401){if(TOKEN)sessionStorage.setItem('kicked','1');sessionStorage.removeItem('t');location.reload()}return r.json()});
 const refresh=()=>{sig='';return poll()};
 function renderLogs(box,obj){box.innerHTML=logCategories.map(c=>{const e=(obj||{})[c]||[];return '<div class="log-category'+(e.length?'':' empty')+'"><div class="cat-head"><span>'+c+'</span><span class="minus">−</span></div><div class="cat-body">'+e.map(x=>'<div class="log-entry">'+esc(x.text)+'<div class="meta">'+fmt(x.at)+'</div></div>').join('')+'</div></div>'}).join('')}
-async function poll(){const d=await api('/next?cur='+(cur||''));DL=d.left!=null?Date.now()+d.left:0;delete d.left;D=d;
+async function poll(){const d=await api('/next?cur='+(cur||''));document.title=(d.queue?'('+d.queue+') ':'')+'Operator – Flirt & Kemi';DL=d.left!=null?Date.now()+d.left:0;delete d.left;D=d;
  const q=d.queue||0,s=JSON.stringify(d);if(s===sig)return;sig=s;
- if(d.none){cur=null;$('.queue').innerHTML='<b>Messages in queue: 0</b>';$('.customer-msg').textContent='Ingen ventende samtaler';$('#hist').innerHTML='';$('.logs').innerHTML='';$('.facts').innerHTML='';return}
+ if(d.none){cur=null;resetPanels();showCounts(d);$('.queue').innerHTML='<b>Messages in queue: '+Object.values(d.counts||{}).reduce((a,b)=>a+b,0)+'</b>';$('.customer-msg').textContent='Tryk på "Get Next Message" for at hente næste opgave';$('#hist').innerHTML='';$('.logs').innerHTML='';$('.facts').innerHTML='';$('#taskbar').hidden=true;$('#donebtn').hidden=true;$('#aib').hidden=true;$('#helpb').style.display=d.role==='admin'?'none':'';return}
  cur=d.id;renderGal();const c=d.conv,u=d.customer,today=new Date().toISOString().slice(0,10);
- $('.badge').textContent='● '+u.credits+' credits';$('.facts').innerHTML=[['Name',u.name],['Full name',[u.first,u.last].filter(Boolean).join(' ')],['Age',u.age],['City',u.city],['Likes',u.likes],['About',u.about],['Looking for',u.seeking]].filter(x=>x[1]).map(x=>'<div><strong>'+x[0]+':</strong> '+esc(String(x[1]))+'</div>').join('')+(u.avatar?'<div><img src="/img/'+u.avatar+'" style="width:84px;height:84px;object-fit:cover;border-radius:50%;margin-top:6px"></div>':'');
+ $('.badge').textContent='● '+u.credits+' credits';$('.facts').innerHTML=[['Name',u.name],['Full name',[u.first,u.last].filter(Boolean).join(' ')],['Age',u.age],['City',u.city],['Likes',u.likes],['About',u.about],['Looking for',u.seeking]].filter(x=>x[1]).map(x=>'<div><strong>'+x[0]+':</strong> '+esc(String(x[1]))+'</div>').join('');
  $('.queue').innerHTML='<b>Messages in queue: '+q+'</b><br>Writing as: '+esc(d.profile||'-')+'<br>Conversation Started: '+fmt(c.started);
  document.querySelectorAll('.count')[0].textContent=d.inCount;document.querySelectorAll('.count')[1].textContent=d.outCount;
  $('#hist').innerHTML=c.msgs.map((m,i)=>'<div style="margin:4px 0;text-align:'+(m.from==='m'?'right':'left')+'"><span style="display:inline-block;padding:6px 10px;border-radius:10px;background:'+(m.from==='m'?'#477aa7':'#48515a')+'">'+(m.img?'<a href="/img/'+m.img+'" target="_blank"><img src="/img/'+m.img+'" style="display:block;max-width:180px;max-height:180px;border-radius:8px;margin-bottom:4px"></a>'+(m.from==='c'?'<a href="#" data-del="'+i+'" style="font-size:11px;color:#ffb3ab">Fjern billede</a>':'')+'<br>':'')+esc(m.text)+'</span></div>').join('');$('#hist').scrollTop=1e9;
  const lastC=[...c.msgs].reverse().find(m=>m.from==='c');$('.customer-msg').textContent='Customer: '+(lastC?(lastC.text||'📷 Billede'):'-');
  const imp=n=>n.important&&(!n.until||n.until>=today);
- $('.logs').innerHTML=[...c.notes].sort((a,b)=>imp(b)-imp(a)).map(n=>'<div class="log" data-id="'+n.id+'">'+(imp(n)?'<span class="pin">📌</span>':'')+'<b>'+fmt(n.at)+'</b> &nbsp; '+esc(n.text)+(imp(n)?'<small style="display:block;color:#cfd5da">Pinned until '+n.until+'</small>':'')+'<span class="edit" data-a="edit">✎</span><span class="delete" data-a="del">▮</span></div>').join('');
- renderLogs($('#manLogs'),c.logs.man);renderLogs($('#womanLogs'),c.logs.woman)}
+ $('.logs').innerHTML=[...c.notes].filter(n=>OLDN||!(n.important&&n.until&&n.until<today)).sort((a,b)=>imp(b)-imp(a)).map(n=>'<div class="log" data-id="'+n.id+'">'+(imp(n)?'<span class="pin">📌</span>':'')+'<b>'+fmt(n.at)+'</b> &nbsp; '+esc(n.text)+(imp(n)?'<small style="display:block;color:#cfd5da">Pinned until '+n.until+'</small>':'')+'<span class="edit" data-a="edit">✎</span><span class="delete" data-a="del">▮</span></div>').join('');
+ renderLogs($('#manLogs'),c.logs.man);renderLogs($('#womanLogs'),c.logs.woman);fillExtra(d)}
 $('.logs').addEventListener('click',async e=>{const a=e.target.dataset.a,row=e.target.closest('.log');if(!a||!row)return;let text;
  if(a==='edit'){text=prompt('Rediger note',row.childNodes[2]?.textContent.trim());if(!text)return}else if(!confirm('Slet noten?'))return;
  await api('/note',{action:a,id:cur,noteId:row.dataset.id,text});refresh()});
-async function send(){const t=$('#msg'),v=t.value.trim();if((!v&&!selImg)||!cur)return;t.value='';const im=selImg;selImg='';renderGal();const r=await api('/send',{id:cur,text:v,img:im});if(r&&r.error)alert(r.error);refresh()}
-function panic(){if(cur&&confirm('Send samtalen til Panic Room?'))api('/status',{id:cur,status:'panic'}).then(()=>{cur=null;refresh()})}
-function hold(){const m=cur&&prompt('Hold i minutter (5 / 15 / 30 / 60 / 120)','15');if(m)api('/status',{id:cur,status:'hold',minutes:+m}).then(refresh)}
-$('.quit').onclick=()=>cur&&api('/status',{id:cur,status:'closed'}).then(()=>{cur=null;refresh()});
-$('.bluebtn').onclick=function(){if(!cur)return;const me=this.dataset.me!=='1';this.dataset.me=me?'1':'';this.textContent=me?'Assigned: Me ▾':'Assign To ▾';api('/status',{id:cur,status:'assign',assignee:me?'me':''})};
+async function send(){const t=$('#msg'),v=t.value.trim();if((!v&&!selImg)||!cur)return;const im=selImg;const r=await api('/send',{id:cur,text:v,img:im});
+ if(r&&r.error){alert(r.error);return}t.value='';selImg='';renderGal();toast('Besked sendt ✓');refresh()}
+function toast(m){const e=$('#toast');e.textContent=m;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)}
+function holdModal(){if(!cur)return;$('#holdBtns').innerHTML=[5,15,30,60,120].map(m=>'<button class="btn bluebtn" data-m="'+m+'" style="min-width:90px">'+m+' min</button>').join('');$('#holdOverlay').style.display='flex'}
+$('#holdBtns').addEventListener('click',async e=>{const m=e.target.dataset.m;if(!m)return;const r=await api('/status',{id:cur,status:'hold',minutes:+m});$('#holdOverlay').style.display='none';if(r&&r.error)return alert(r.error);toast('Hold '+m+' min');cur=null;refresh()});
+function helpModal(){if(!cur)return;$('#helpText').value='';$('#helpOverlay').style.display='flex'}
+async function sendHelp(){const r=await api('/status',{id:cur,status:'help',reason:$('#helpText').value});$('#helpOverlay').style.display='none';if(r&&r.error)return alert(r.error);toast('Sendt til admin');cur=null;refresh()}
+$('.quit').onclick=async()=>{if(!cur)return;const r=await api('/status',{id:cur,status:'closed'});if(r&&r.error)return alert(r.error);cur=null;refresh()};
+$('#donebtn').onclick=async()=>{if(!cur||!confirm('Afslut opgaven uden at skrive til kunden?'))return;const r=await api('/task/complete',{id:cur});if(r&&r.error)return alert(r.error);cur=null;refresh()};
+$('#getnext').onclick=async()=>{const b=$('#getnext');b.disabled=true;const r=await api('/get-next',{});b.disabled=false;if(r&&r.none)toast('Ingen ventende opgaver lige nu');sig='';poll()};
+$('#aib').onclick=async()=>{if(!cur)return;const b=$('#aib');b.disabled=true;b.textContent='…';const r=await api('/ai/suggest',{id:cur});b.disabled=false;b.textContent='AI';if(r.error)return alert(r.error);if(r.escalate)return alert('AI foreslår at hente administratoren (Request Admin Help).');$('#msg').value=r.text||'';$('#msg').focus()};
+function showCounts(d){const c=d.counts||{},n=k=>c[k]||0;$('#counts').innerHTML=d.role==='admin'?'<span style="color:#ff6b6b">Panic: '+n('panic')+'</span> · <span style="color:#ff6b6b">ASA: '+n('asa')+'</span>':'Live: <b>'+n('live')+'</b> · Match: <b>'+n('match')+'</b> · Reminders: <b>'+n('reminder')+'</b>'}
 async function saveNote(){const text=$('#noteText').value.trim(),imp=$('#importantNote').checked,until=$('#pinUntil').value;
  if(!cur)return alert('Ingen aktiv samtale.');if(!text)return alert('Skriv først en note.');if(imp&&!until)return alert('Vælg en dato, hvor den vigtige note skal fjernes fra toppen.');
  await api('/note',{action:'add',id:cur,text,important:imp,until});$('#noteText').value='';$('#importantNote').checked=false;$('#pinDateRow').style.display='none';$('#pinUntil').value='';closeNoteModal();refresh()}
 const _open=openProfileLog;openProfileLog=function(p){if(!cur)return alert('Ingen aktiv samtale.');_open(p);
- if(p==='man'&&!D.customer.sensitive)[...$('#logCategory').options].forEach(o=>{if(['Health','Sexual preference'].includes(o.value))o.remove()})};
+ if(p==='man'&&!D.customer.sensitive)[...$('#logCategory').options].forEach(o=>{if(['Health','Sexual preferences'].includes(o.value))o.remove()})};
 async function saveProfileLog(){const text=$('#logComment').value.trim();if(!text)return alert('Skriv først en note.');
  const r=await api('/log',{id:cur,person:activeLogPerson,category:$('#logCategory').value,text});if(r.error)return alert(r.error);closeProfileLog();refresh()}
 document.querySelectorAll('.nav a')[2].textContent='Admin';if(sessionStorage.getItem('role')==='operator')document.querySelectorAll('.nav a')[2].style.display='none';
-document.querySelectorAll('.nav a').forEach((a,i)=>a.onclick=async e=>{e.preventDefault();if(i===2)return location.href='/admin.html';if(i>0){const s=await api('/stats'+(i===3?'?me=1':''));alert(Object.entries(s).map(([k,v])=>k.replace('_',' ')+': '+v).join('\n'))}});
+document.querySelectorAll('.nav a').forEach((a,i)=>a.onclick=async e=>{e.preventDefault();if(i===2)return location.href='/admin.html';if(i===3){const s=await api('/mystats'),f=x=>x.n+' messages · <b>'+x.dkk.toFixed(2)+' DKK</b>';$('#infoT').textContent='My Statistics';$('#infoB').innerHTML='<div style="display:flex;justify-content:space-between;border-bottom:1px solid #48515a"><span>Today</span><span>'+f(s.today)+'</span></div><div style="display:flex;justify-content:space-between;border-bottom:1px solid #48515a"><span>Last 7 days</span><span>'+f(s.d7)+'</span></div><div style="display:flex;justify-content:space-between;border-bottom:1px solid #48515a"><span>Last 30 days</span><span>'+f(s.d30)+'</span></div><small style="color:#aab">Calculated automatically from the rates set by the administrator (DKK per message sent).</small>';$('#infoOverlay').style.display='flex'}
+ else if(i===1){const s=await api('/stats');showInfo('Chat Statistics',s)}});
 $('#hist').addEventListener('click',async e=>{const i=e.target.dataset.del;if(i===undefined)return;e.preventDefault();if(!confirm('Fjern dette billede?'))return;await api('/delmsg',{id:cur,idx:+i});refresh()});
 let selImg='';
 function tick(){const el=document.getElementById('cd');if(!el)return;if(!DL||sessionStorage.getItem('role')==='admin'){el.hidden=true;return}const s=Math.max(0,Math.round((DL-Date.now())/1000));el.hidden=false;el.textContent='Svar inden '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' ellers logges du ud';el.style.background=s<45?'#b44':'#2474ac'}
 function renderGal(){const g=(D&&D.gallery)||[];$('#gal').innerHTML=g.length?g.map(x=>'<img data-g="'+x.file+'" src="/img/'+x.file+'" title="'+(x.label||'Photo')+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer;flex:none;border:3px solid '+(selImg===x.file?'#ff7eb6':'transparent')+'">').join(''):''}
 $('#gal').addEventListener('click',e=>{const f=e.target.dataset.g;if(!f)return;selImg=selImg===f?'':f;renderGal()});
-async function boot(){if(!TOKEN&&sessionStorage.getItem('kicked')){sessionStorage.removeItem('kicked');alert('Du blev logget ud, fordi du ikke svarede inden for 3 minutter. Log ind igen.')}while(!TOKEN){const u=prompt('Username'),p=u===null?null:prompt('Password');if(p===null)return;
- const r=await fetch('/api/op/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
- if(r.ok){const jr=await r.json();TOKEN=jr.token;sessionStorage.setItem('t',TOKEN);sessionStorage.setItem('role',jr.role)}else alert(r.status===429?'For mange forsøg. Prøv senere.':'Wrong username or password')}
+function showInfo(t,s){$('#infoT').textContent=t;$('#infoB').innerHTML=Object.entries(s).map(([k,v])=>'<div style="display:flex;justify-content:space-between;border-bottom:1px solid #48515a"><span>'+esc(k.replace(/_/g,' '))+'</span><b>'+esc(String(v))+'</b></div>').join('');$('#infoOverlay').style.display='flex'}
+function resetPanels(){$('.badge').textContent='● –';$('.customer-img').textContent='👤';$('.customer-img').style.backgroundImage='';$('#prof').textContent='–';
+ ['dn','dt','db','dl'].forEach(i=>$('#'+i).textContent='–');$('#dp').textContent='0';$('#dph').style.backgroundImage='';
+ document.querySelectorAll('.count').forEach(c=>c.textContent='0');$('#manLogs').innerHTML='';$('#womanLogs').innerHTML='';renderGal();}
+function fillExtra(d){const u=d.customer,p=d.pinfo||{};$('.customer-img').textContent=u.avatar?'':(u.name||'?').charAt(0).toUpperCase();$('.customer-img').style.backgroundImage=u.avatar?'url(/img/'+u.avatar+')':'';$('.customer-img').style.backgroundSize='cover';
+ $('#prof').textContent=p.name||'–';$('#dn').textContent=p.name||'–';$('#dt').textContent=p.tagline||'–';$('#db').textContent=p.bio||'–';$('#dp').textContent=p.photos||0;$('#dl').textContent=p.label||'–';
+ $('#dph').style.backgroundImage=p.avatar?'url(/img/'+p.avatar+')':'';$('#dph').style.backgroundSize='cover';
+ showCounts(d);const tb=$('#taskbar');if(d.task){tb.hidden=false;tb.style.background=d.task.red?'#7a1f1f':'#8a3a6b';tb.innerHTML=esc(d.task.title)+' – <span style="font-weight:normal">'+esc(d.task.text)+'</span>'}else tb.hidden=true;
+ $('#donebtn').hidden=!(d.type!=='live');$('#aib').hidden=!d.ai;$('#helpb').style.display=d.role==='admin'?'none':'';$('#holdb').style.display=''}
+$('#oldn').onclick=function(){OLDN=!OLDN;this.textContent=OLDN?'Hide Old Top Notes':'View Old Top Notes';sig='';poll()};
+$('#camb').onclick=()=>{if(!cur)return;const g=document.getElementById('gal');if(!(D&&D.gallery&&D.gallery.length))return alert('Der er ingen delte billeder til denne profil. Admin kan tilføje dem under Profiles.');g.style.display=g.style.display==='none'?'flex':'none'};
+$('#hamb').onclick=()=>document.body.classList.toggle('menu');
+document.addEventListener('click',e=>{if(document.body.classList.contains('menu')&&!e.target.closest('.side,.hamb,.customer,.details'))document.body.classList.remove('menu')});
+$('#agent').onclick=async()=>{if(!confirm('Log ud?'))return;try{await api('/logout',{})}catch(e){}sessionStorage.clear();location.reload()};
+$('#msg').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+function loginUI(note){return new Promise(res=>{const o=$('#loginOverlay');o.style.display='flex';$('#le').textContent=note||'';$('#lu').focus();
+ $('#loginForm').onsubmit=async e=>{e.preventDefault();$('#le').textContent='';
+  try{const r=await fetch('/api/op/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#lu').value,password:$('#lp').value})});
+   if(!r.ok){$('#le').textContent=r.status===429?'For mange forsøg. Prøv senere.':'Forkert brugernavn eller adgangskode.';return}
+   const jr=await r.json();TOKEN=jr.token;ME=jr.username;sessionStorage.setItem('t',TOKEN);sessionStorage.setItem('role',jr.role);sessionStorage.setItem('user',jr.username);$('#lp').value='';o.style.display='none';res()}catch(er){$('#le').textContent='Kunne ikke forbinde. Prøv igen.'}}})}
+async function boot(){if(!TOKEN){const k=sessionStorage.getItem('kicked');sessionStorage.removeItem('kicked');await loginUI(k?'Du blev logget ud, fordi du ikke svarede inden for 3 minutter. Log ind igen.':'')}
+ const OP=new URLSearchParams(location.search).get('open');if(OP){await api('/open',{id:OP});history.replaceState(null,'','/operator.html')}
+ $('#who').textContent=ME||'Agent';$('#mod').textContent=ME||'Moderator';
  poll();setInterval(poll,2500);setInterval(tick,1000);tick()}boot();
 </script>
 </body>

@@ -6,9 +6,9 @@ const CONSENT_VERSION = 'v1';
 
 // Priser/kreditter ligger KUN her: klienten sender kun pakke-id, aldrig beløb.
 const PACKAGES = {
-  p100: { dkk: 100, credits: 500 },
-  p250: { dkk: 250, credits: 1400 },
-  p500: { dkk: 500, credits: 3000 },
+  p100: { dkk: 100, eur: 13.50, credits: 500 },     // eur bruges kun ved CCBill (understøtter ikke DKK) – ret priserne efter aftale
+  p250: { dkk: 250, eur: 33.50, credits: 1400 },
+  p500: { dkk: 500, eur: 67.00, credits: 3000 },
 };
 
 // Simpel filbaseret lagring. Skift til rigtig database i produktion.
@@ -44,6 +44,30 @@ app.post('/api/quickpay/callback', express.raw({ type: '*/*' }), (req, res) => {
 });
 
 app.use(express.json({ limit: '3mb' }));
+const urlenc = express.urlencoded ? express.urlencoded({ extended: false }) : (q, s, n) => n();
+const CC_IPS = [[64, 38, 212], [64, 38, 215], [64, 38, 240], [64, 38, 241]];
+const ccIp = ip => { const m = String(ip || '').replace('::ffff:', '').split('.').map(Number); return m.length === 4 && CC_IPS.some(p => p[0] === m[0] && p[1] === m[1] && p[2] === m[2]); };
+app.post('/api/ccbill/webhook', urlenc, (req, res) => {          // CCBill Webhooks: sæt URL i CCBill Admin: https://DIT-DOMÆNE/api/ccbill/webhook?token=<CCBILL_WEBHOOK_TOKEN>
+  const want = process.env.CCBILL_WEBHOOK_TOKEN || '', tok = String(req.query.token || '');
+  if (!CCB || !want) return res.sendStatus(503);                  // lukket indtil konfigureret (aldrig credits uden hemmelighed)
+  if (tok.length !== want.length || !crypto.timingSafeEqual(Buffer.from(tok), Buffer.from(want))) return res.sendStatus(403);
+  if (process.env.CCBILL_IP_CHECK === '1' && !ccIp(req.ip)) return res.sendStatus(403);
+  const b = req.body || {}, ev = String(req.query.eventType || b.eventType || ''), txn = String(b.transactionId || b.subscriptionId || ''),
+    oid = String(b['X-order_id'] || b.order_id || ''), o = db.orders[oid];
+  if (!o) { console.warn('ccbill: ukendt ordre', ev, oid); return res.sendStatus(200); }
+  db.payEvents ||= {}; const ek = ev + ':' + (txn || oid);
+  if (db.payEvents[ek]) return res.sendStatus(200);                // samme hændelse to gange => ingen dobbelt-kreditering
+  const cu = db.customers[o.customerId];
+  const reverse = status => { if (o.status === 'paid') { if (cu) cu.credits -= o.credits; o.status = status; o.reversedAt = new Date().toISOString(); } else if (o.status === 'pending') o.status = 'cancelled'; };
+  if (ev === 'NewSaleSuccess') {
+    const paid = parseFloat(b.billedInitialPrice ?? b.initialPrice ?? b.accountingInitialPrice);
+    if (Number.isFinite(paid) && o.eur && Math.abs(paid - o.eur) > 0.011) { o.status = 'mismatch'; console.error('ccbill: beløb passer ikke', oid, paid, o.eur); }
+    else if (o.status === 'pending') { o.txn = txn; fulfil(o); }
+  } else if (ev === 'NewSaleFailure') { if (o.status === 'pending') o.status = 'failed'; }
+  else if (['Refund', 'Return', 'Void'].includes(ev)) reverse('refunded');
+  else if (ev === 'Chargeback') { reverse('chargeback'); if (cu && process.env.CCBILL_BLOCK_ON_CHARGEBACK !== '0') cu.blocked = true; }
+  db.payEvents[ek] = new Date().toISOString(); save(); res.sendStatus(200);
+});
 const SITE = () => process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '';
 app.get('/robots.txt', (_, res) => res.type('text/plain').send('User-agent: *\nAllow: /\nDisallow: /api/\n' + (SITE() ? 'Sitemap: ' + SITE() + '/sitemap.xml\n' : '')));
 app.get('/sitemap.xml', (_, res) => res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
@@ -83,6 +107,13 @@ app.post('/api/checkout', async (req, res) => {
     save();
 
     if (DEMO) return res.json({ url: '/demo-pay.html?o=' + orderId });
+    if (CCB) {
+      const price = pkg.eur.toFixed(2), period = '30';
+      Object.assign(db.orders[orderId], { psp: 'ccbill', eur: pkg.eur }); save();
+      const q = new URLSearchParams({ clientAccnum: process.env.CCBILL_ACCNUM, clientSubacc: process.env.CCBILL_SUBACC, initialPrice: price, initialPeriod: period, currencyCode: CC_CUR,
+        formDigest: ccDigest(price, period, CC_CUR, process.env.CCBILL_SALT), 'X-order_id': orderId });
+      return res.json({ url: 'https://api.ccbill.com/wap-frontflex/flexforms/' + process.env.CCBILL_FLEXID + '?' + q });
+    }
     const payment = await qp('POST', '/payments', { order_id: orderId, currency: 'DKK' });
     const link = await qp('PUT', `/payments/${payment.id}/link`, {
       amount, auto_capture: true, language: 'da',
@@ -94,7 +125,10 @@ app.post('/api/checkout', async (req, res) => {
 });
 
 // ---------- Demo/ægte betaling, chat, operatør ----------
-const DEMO = !QUICKPAY_API_KEY, COST = 10;
+const CCB = !!(process.env.CCBILL_ACCNUM && process.env.CCBILL_SUBACC && process.env.CCBILL_FLEXID && process.env.CCBILL_SALT);
+const CC_CUR = process.env.CCBILL_CURRENCY || '978';          // 978 = EUR (CCBill FlexForms understøtter ikke DKK)
+const ccDigest = (price, period, cur, salt) => crypto.createHash('md5').update(price + period + cur + salt).digest('hex');
+const DEMO = !QUICKPAY_API_KEY && !CCB, COST = 10;
 db.convs ||= {};
 const now = () => Date.now(), iso = () => new Date().toISOString(), rid = n => crypto.randomBytes(n).toString('hex');
 const conv = (cid, pid) => (db.convs[cid + '~' + pid] ||= { cid, pid, msgs: [], notes: [], logs: { man: {}, woman: {} }, status: 'open', holdUntil: 0, assignee: '', started: iso() });
@@ -124,7 +158,7 @@ app.post('/api/demo/pay', (req, res) => {           // kun når der ikke er Quic
 
 // Kunde
 const cl = (v, n) => String(v || '').trim().slice(0, n);
-const pubMsg = m => ({ from: m.from, text: m.text, img: m.img || '', label: m.label || '', at: m.at });       // aldrig operatørnavn til kunden
+const pubMsg = m => ({ from: m.from, text: m.text, img: m.img || '', label: m.label || '', ai: !!m.ai, at: m.at });       // aldrig operatørnavn til kunden
 const meOut = (id, c) => ({ id, name: c.name, nick: c.nick || '', first: c.first || '', last: c.last || '', age: c.age || '', city: c.city || '',
   likes: c.likes || '', about: c.about || '', seeking: c.sensitiveConsent ? (c.seeking || '') : '', sensitive: !!c.sensitiveConsent,
   avatar: c.avatar || '', email: c.email || '', hasLogin: !!c.pw, verified: !!c.emailVerified, credits: c.credits, cost: COST });
@@ -229,13 +263,14 @@ app.put('/api/me/:cid', (req, res) => {
   if (!(age >= 18 && age <= 99)) return res.status(400).json({ error: 'Du skal være mindst 18 år.' });
   Object.assign(c, { nick, first, last: cl(b.last, 40), age, city: cl(b.city, 40), likes: cl(b.likes, 300), about: cl(b.about, 600),
     sensitiveConsent: sens, seeking: sens ? cl(b.seeking, 60) : '', name: nick || first });
-  if (!sens) for (const k of convKeys(id)) { delete db.convs[k].logs.man.Health; delete db.convs[k].logs.man['Sexual preference']; }   // samtykke trukket tilbage
+  if (!sens) for (const k of convKeys(id)) { delete db.convs[k].logs.man.Health; delete db.convs[k].logs.man['Sexual preferences']; }   // samtykke trukket tilbage
   save(); res.json({ ok: true, me: meOut(id, c) });
 });
 app.delete('/api/me/:cid/avatar', (req, res) => { const c = cust(req, res); if (!c) return; dropFile(c.avatar); c.avatar = ''; save(); res.json({ ok: true }); });
 app.delete('/api/me/:cid', (req, res) => {            // ret til sletning (GDPR). Ordrer beholdes pga. bogføringsloven.
   const id = req.params.cid; if (!db.customers[id]) return res.json({ ok: true });
   for (const k of convKeys(id)) delete db.convs[k];
+  if (typeof OPS_CTX !== 'undefined' && OPS_CTX.onCustomerDeleted) OPS_CTX.onCustomerDeleted(id);
   for (const [f, u] of Object.entries(db.uploads)) if (u.cid === id) dropFile(f);
   delete db.customers[id]; db.consents = db.consents.filter(x => x.customerId !== id); save(); res.json({ ok: true });
 });
@@ -305,47 +340,12 @@ op.post('/login', (req, res) => {
   if (!o || !crypto.timingSafeEqual(Buffer.from(hashPw(String(req.body.password || ''), o.salt)), Buffer.from(o.hash))) {
     f.n++; fails.set(req.ip, f); return res.sendStatus(401);
   }
-  const token = rid(24); sessions.set(token, { username: u, role: o.role }); res.json({ token, role: o.role });
+  const token = rid(24); sessions.set(token, { username: u, role: o.role }); res.json({ token, role: o.role, username: u });
 });
 op.use((req, res, next) => { const s = sessions.get(req.get('x-op-token')); if (!s) return res.sendStatus(401); req.op = s; next(); });
-setInterval(() => {                                  // frigiv samtaler og log inaktive operatører ud
-  let ch = false;
-  for (const c of Object.values(db.convs)) {
-    if (!c.claim) continue;
-    if (!pending(c)) { delete c.claim; ch = true; continue; }
-    if (now() - c.claim.since > IDLE_MS) {
-      const u = c.claim.by; delete c.claim; ch = true;
-      if (db.operators[u] && db.operators[u].role !== 'admin') for (const [t, s] of sessions) if (s.username === u) sessions.delete(t);
-    }
-  }
-  if (ch) save();
-}, Math.min(10000, IDLE_MS / 3)).unref();
+const OPS_CTX = { app, op, db, save, now, iso, rid, conv, convKeys, canSee, COST, cl, sessions, pending, dropFile };
+require('./ops')(OPS_CTX);
 app.use('/api/op', op);
-op.get('/next', (req, res) => {
-  const me = req.op.username, free = c => (!c.claim || c.claim.by === me) && (!c.resv || c.resv.by === me || c.resv.until < now());   // kun én operatør pr. samtale
-  const queue = Object.entries(db.convs).filter(([, c]) => pending(c) && canSee(req.op, c) && free(c));
-  const cur = cv(req, req.query.cur);
-  let id = cur && cur.status === 'open' && cur.holdUntil < now() ? req.query.cur : null;
-  if (!id && queue.length) id = queue.sort((a, b) => a[1].msgs.at(-1).at.localeCompare(b[1].msgs.at(-1).at))[0][0];
-  if (!id) return res.json({ none: true, queue: 0 });
-  const c = db.convs[id], u = db.customers[c.cid]; if (!u) return res.json({ none: true, queue: 0 });
-  let left = null;
-  if (pending(c)) {                                   // ny kundebesked: samtalen låses til denne operatør
-    const lastC = c.msgs.at(-1).at;
-    if (!c.claim || c.claim.by !== me || c.claim.msgAt !== lastC) c.claim = { by: me, since: now(), msgAt: lastC };
-    left = Math.max(0, c.claim.since + IDLE_MS - now());
-  } else if (c.claim && c.claim.by === me) delete c.claim;
-  res.json({ id, left: left, queue: queue.length, profile: (db.profiles[c.pid] || {}).name || '', gallery: ((db.profiles[c.pid] || {}).gallery || []).map(g => ({ file: g.file, label: g.source === 'illustration' ? 'Illustration' : '' })), conv: c, customer: { about: u.about || '', avatar: u.avatar || '', name: u.name, first: u.first, last: u.last, age: u.age, city: u.city, likes: u.likes, seeking: u.sensitiveConsent ? u.seeking : '', credits: u.credits, sensitive: u.sensitiveConsent },
-    inCount: c.msgs.filter(m => m.from === 'c').length, outCount: c.msgs.filter(m => m.from === 'm').length });
-});
-op.post('/send', (req, res) => {
-  const c = cv(req, req.body.id), t = cl(req.body.text, 1000), img = String(req.body.img || '');
-  if (!c || (!t && !img)) return res.sendStatus(400);
-  let label = '';
-  if (img) { const u = db.uploads[img]; if (!u || u.kind !== 'gallery' || u.pid !== c.pid) return res.status(400).json({ error: 'Billedet hører ikke til denne profil.' }); label = u.source === 'illustration' ? 'Illustration' : ''; }
-  delete c.claim; c.resv = { by: req.op.username, until: now() + IDLE_MS };   // samme operatør fortsætter samtalen i 3 min
-  c.msgs.push({ from: 'm', text: t, img, label, by: req.op.username, at: iso() }); (db.opLog ||= []).push({ op: req.op.username, at: iso() }); save(); res.json({ ok: true });
-});
 op.post('/note', (req, res) => {
   const c = cv(req, req.body.id); if (!c) return res.sendStatus(404);
   const { action, noteId, text, important, until } = req.body, n = c.notes.find(x => x.id === noteId);
@@ -354,30 +354,9 @@ op.post('/note', (req, res) => {
   if (action === 'del') c.notes = c.notes.filter(x => x.id !== noteId);
   save(); res.json({ ok: true });
 });
-op.post('/log', (req, res) => {
-  const { id, person, category, text } = req.body, c = cv(req, id), u = c && db.customers[c.cid];
-  if (!c || !u || !text || !['man', 'woman'].includes(person)) return res.sendStatus(400);
-  if (person === 'man' && ['Health', 'Sexual preference'].includes(category) && !u.sensitiveConsent)
-    return res.status(403).json({ error: 'Kunden har ikke givet samtykke til denne kategori.' });
-  (c.logs[person][category] ||= []).push({ text: String(text).slice(0, 500), at: iso() }); save(); res.json({ ok: true });
-});
-op.post('/status', (req, res) => {
-  const c = cv(req, req.body.id); if (!c) return res.sendStatus(404);
-  const { status, minutes, assignee } = req.body;
-  if (['hold', 'panic', 'closed'].includes(status)) { delete c.claim; delete c.resv; }
-  if (status === 'hold') c.holdUntil = now() + (Number(minutes) || 15) * 60000;
-  else if (status === 'panic' || status === 'closed') c.status = status;
-  else if (status === 'assign') c.assignee = assignee ? req.op.username : '';
-  save(); res.json({ ok: true });
-});
-op.get('/stats', (req, res) => {
-  const cs = Object.values(db.convs), ms = cs.flatMap(c => c.msgs);
-  if (req.query.me) return res.json({ my_messages: ms.filter(m => m.by === req.op.username).length,
-    my_assigned_conversations: cs.filter(c => c.assignee === req.op.username).length });
-  res.json({ conversations: cs.length, in_queue: cs.filter(pending).length, panic_room: cs.filter(c => c.status === 'panic').length,
-    customer_messages: ms.filter(m => m.from === 'c').length, operator_messages: ms.filter(m => m.from === 'm').length });
-});
 const admin = (req, res, next) => req.op.role === 'admin' ? next() : res.sendStatus(403);
+op.get('/admin/payments', admin, (_, res) => res.json({ psp: CCB ? 'ccbill' : (QUICKPAY_API_KEY ? 'quickpay' : 'demo'), orders: Object.entries(db.orders).sort((a, b) => String(b[1].at || '').localeCompare(String(a[1].at || ''))).slice(0, 200)
+  .map(([id, o]) => ({ id, at: o.at || '', customer: (db.customers[o.customerId] || {}).name || '(deleted)', dkk: o.amount / 100, eur: o.eur || null, credits: o.credits, status: o.status, psp: o.psp || (QUICKPAY_API_KEY ? 'quickpay' : 'demo'), txn: o.txn || '' })) }));
 // Aktivitetslog: gemmer kun operatørnavn + tidspunkt (ingen beskedtekst/kunde-id), så den overlever sletning af kundedata.
 const RET = Number(process.env.LOG_RETENTION_DAYS) || 180;   // dage; ændr med LOG_RETENTION_DAYS
 db.opLog ||= [];
@@ -387,12 +366,6 @@ op.get('/admin/activity', admin, (req, res) => {
   const from = Date.parse(req.query.from) || 0, to = Date.parse(req.query.to) || now() + 1, o = req.query.op;
   const list = db.opLog.filter(x => { const t = Date.parse(x.at); return t >= from && t <= to && (!o || x.op === o); });
   res.json({ retention_days: RET, entries: list.slice(-50000).map(x => [x.op, x.at]) });
-});
-op.get('/admin/panic', admin, (_, res) => res.json(Object.entries(db.convs).filter(([, c]) => c.status === 'panic')
-  .map(([id, c]) => ({ id, name: (db.customers[c.cid] || {}).name, profile: (db.profiles[c.pid] || {}).name, msgs: c.msgs.slice(-20), notes: c.notes }))));
-op.post('/admin/release', admin, (req, res) => {
-  const c = db.convs[req.body.id]; if (!c) return res.sendStatus(404);
-  c.status = req.body.close ? 'closed' : 'open'; save(); res.json({ ok: true });
 });
 op.get('/admin/operators', admin, (_, res) => res.json(Object.entries(db.operators).map(([username, o]) => ({ username, role: o.role }))));
 op.post('/admin/operators', admin, (req, res) => {
