@@ -16,8 +16,12 @@ section{max-width:760px;margin:0 auto;padding:10px 18px}h2{font-size:25px;color:
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 4px 16px #b9709e22;border-top:3px solid #f0508a}.card b{font-size:17px}
 .step{background:#fff;border-left:4px solid #9a5ee0;padding:11px 16px;margin:10px 0;border-radius:6px;box-shadow:0 2px 10px #b9709e18}
 a{color:#c2307a}footer{max-width:760px;margin:40px auto 0;padding:16px 18px 30px;border-top:1px solid #ecd6e2;font-size:12px;color:#8a7090}
-.kick{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#a02560;border-bottom:1px solid #f0508a88;padding-bottom:4px;margin-bottom:12px}.card b:before{content:"";display:block;width:28px;height:3px;background:#f0508a;border-radius:2px;margin-bottom:8px}</style></head><body>
-<div class="hero"><div class="in"><div class="kick">Diskret · Respektfuldt · Kun 18+</div>
+.kick{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#a02560;border-bottom:1px solid #f0508a88;padding-bottom:4px;margin-bottom:12px}.card b:before{content:"";display:block;width:28px;height:3px;background:#f0508a;border-radius:2px;margin-bottom:8px}.bar{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;justify-content:space-between;align-items:center;max-width:980px;margin:0 auto;padding:14px 18px}.bar b{font-size:18px;color:#4a2150;letter-spacing:.02em}.bar a{font-size:14px;font-weight:bold;text-decoration:none;color:#a02560;border:1px solid #e6a9c6;background:#fff9;padding:7px 16px;border-radius:20px}.in{padding-top:70px!important}
+.pfs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}.pf{background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 4px 16px #b9709e22;text-decoration:none;color:#3b2a3f;display:block}.pf .av{width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f0508a,#9a5ee0);color:#fff;font-size:32px;font-weight:bold}.pf b{display:block}.pf small{display:block;color:#7a5a80;font-size:12px}.chip{display:inline-block;margin-top:6px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#a02560;background:#fde8f1;border-radius:10px;padding:2px 8px}
+.pr{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}.pk{background:#fff;border-radius:16px;padding:18px;text-align:center;box-shadow:0 4px 16px #b9709e22;border-top:3px solid #9a5ee0}.pk b{font-size:26px;color:#4a2150;display:block}.pk small{color:#7a5a80}
+details{background:#fff;border-radius:12px;padding:12px 16px;margin:8px 0;box-shadow:0 2px 10px #b9709e18}summary{cursor:pointer;font-weight:bold;color:#4a2150}details p{margin:8px 0 2px}
+</style><link rel="icon" href="/favicon.svg" type="image/svg+xml"></head><body>
+<div class="hero"><div class="bar"><b>Flirt &amp; Kemi</b><a href="/login.html">Log ind</a></div><div class="in"><div class="kick">Diskret · Respektfuldt · Kun 18+</div>
 <h1>Lyst til at <span>flirte?</span></h1>
 <p class="lead">Skriv med charmerende profiler, lad fantasien få frit spil og få sommerfugle i maven. Det er gratis at oprette sig, og du betaler kun for de beskeder, du selv sender.</p>
 <a class="btn" href="/chat.html?new=1">Start flirten</a>
@@ -30,14 +34,27 @@ a{color:#c2307a}footer{max-width:760px;margin:40px auto 0;padding:16px 18px 30px
 <div class="cards"><div class="card"><b>Prikkende stemning</b><br>Legende og spændende samtaler i dit eget tempo.</div>
 <div class="card"><b>Du bestemmer</b><br>Skriv så meget eller så lidt, du har lyst til. Ingen abonnement og ingen binding.</div>
 <div class="card"><b>Charmerende selskab</b><br>Humor, drilleri og lidt fristende kemi.</div></div>
+<h2>Mød profilerne</h2><p>Her er nogle af profilerne, du kan skrive med. De er fiktive og styres af vores moderatorer.</p><div class="pfs" id="pfs"></div>
 <h2>Sådan kommer du i gang</h2>
 <div class="step"><b>1. Opret dig</b> – vælg et kaldenavn og fortæl lidt om dig selv, hvis du har lyst. Det er gratis.</div>
 <div class="step"><b>2. Fyld op</b> – vælg en pakke i kroner. 1 besked koster 10 kreditter. Vi spørger kort om dit samtykke, inden du betaler.</div>
 <div class="step"><b>3. Flirt løs</b> – skriv, drøm og nyd stemningen.</div>
 <h2>Trygt og privat</h2>
 <p>Du kan til enhver tid slette dine oplysninger og din profil. Vi bruger ikke sporingscookies. Følsomme oplysninger gemmes kun, hvis du selv giver dit samtykke. Tjenesten er kun for personer over 18 år.</p>
+<h2 id="priser">Priser</h2><p>Gratis at oprette sig. Du køber kreditter og betaler kun for de beskeder, du selv sender (1 besked = 10 kreditter). Priser i danske kroner.</p><div class="pr" id="pr"></div>
+<h2>Ofte stillede spørgsmål</h2>
+<details><summary>Er profilerne rigtige personer?</summary><p>Nej. Profilerne er fiktive og styres af vores moderatorer. Det fremgår tydeligt på tjenesten, og du bekræfter det, før du køber kreditter.</p></details>
+<details><summary>Hvad koster det?</summary><p>Det er gratis at oprette sig. Du betaler kun for de beskeder, du sender, og du vælger selv, hvor meget du fylder op. Der er intet abonnement.</p></details>
+<details><summary>Hvem kan se mine billeder og beskeder?</summary><p>Vores moderatorer kan se det, du skriver og sender, fordi de svarer dig. Del kun billeder af dig selv, og del ikke oplysninger, du ikke vil have gemt.</p></details>
+<details><summary>Kan jeg slette min profil?</summary><p>Ja, når som helst under Min profil. Dine oplysninger, billeder og samtaler slettes. Købsoplysninger gemmes kun så længe, bogføringsloven kræver det.</p></details>
+<details><summary>Jeg har glemt min adgangskode</summary><p>Tryk på &quot;Glemt adgangskode?&quot; på log ind-siden, så sender vi et link til din e-mail.</p></details>
+<details><summary>Hvem kan bruge tjenesten?</summary><p>Kun personer, der er fyldt 18 år.</p></details>
 <a class="btn" href="/chat.html?new=1">Opret dig gratis</a></section>
 <footer><a href="/vilkaar.html">Vilkår</a> · <a href="/privatliv.html">Privatliv</a> · Kun for personer over 18 år · Profilerne er fiktive og styres af moderatorer</footer>
 <script>const q=document.getElementById('q'),i=document.getElementById('info');
 q.onclick=e=>{e.stopPropagation();const on=i.classList.toggle('on');q.setAttribute('aria-expanded',on)};
-document.addEventListener('click',e=>{if(!i.contains(e.target)){i.classList.remove('on');q.setAttribute('aria-expanded','false')}});</script></body></html>
+document.addEventListener('click',e=>{if(!i.contains(e.target)){i.classList.remove('on');q.setAttribute('aria-expanded','false')}});
+const E=t=>String(t||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+fetch('/api/public/profiles').then(r=>r.json()).then(p=>{document.getElementById('pfs').innerHTML=p.slice(0,8).map(x=>'<a class="pf" href="/chat.html?new=1">'+(x.avatar?'<img class="av" src="/img/'+E(x.avatar)+'" alt="">':'<div class="av">'+E(x.name.charAt(0))+'</div>')+'<b>'+E(x.name)+'</b><small>'+E(x.tagline)+'</small><span class="chip">Fiktiv profil</span>'+(x.label?' <span class="chip">'+E(x.label)+'</span>':'')+'</a>').join('')}).catch(()=>{});
+fetch('/api/packages').then(r=>r.json()).then(p=>{document.getElementById('pr').innerHTML=Object.values(p).map(v=>'<div class="pk"><b>'+v.dkk+' kr.</b>'+v.credits+' kreditter<br><small>ca. '+Math.floor(v.credits/10)+' beskeder</small></div>').join('')}).catch(()=>{});
+</script></body></html>

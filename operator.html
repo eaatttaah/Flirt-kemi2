@@ -57,12 +57,13 @@
 @media(max-width:1100px){.layout{grid-template-columns:240px 1fr}.details{display:none}.columns{grid-template-columns:260px 1fr}.hamb{margin-left:115px}}
 @media(max-width:800px){.layout{grid-template-columns:0 1fr}.side{display:none}.columns{grid-template-columns:1fr}.customer{display:none}.hamb{margin-left:10px}}
 </style>
-</head>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"></head>
 <body>
 <header class="top"><div class="logo">Mindate<br><span>Operator</span></div><div class="hamb">☰</div><div class="agent">Agent&nbsp;&nbsp; ↪</div></header>
 <div class="layout">
 <aside class="side">
   <div class="profile"><div class="avatar"></div><b>Moderator</b></div>
+  <div id="cd" hidden style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:50;color:#fff;padding:6px 14px;border-radius:16px;font-size:13px;box-shadow:0 2px 10px #0006"></div>
   <nav class="nav">
     <a href="#" class="active">◉ Dashboard</a><a href="#">◉ Chat Statistics</a><a href="#">● Affiliates</a><a href="#">▣ My Statistics</a>
   </nav>
@@ -96,7 +97,7 @@
         <div class="log"><span class="pin">📌</span><b>11 Aug 26<br>05:46</b> &nbsp; Previous conversation log and moderator note.<span class="edit">✎</span><span class="delete">▮</span></div>
       </div>
       <div class="notes"><span>View Old Top Notes</span><button type="button" class="top-note-btn" onclick="openNoteModal()">+ Add Top Notes</button></div>
-      <div id="hist" style="height:150px;overflow:auto;padding:8px 16px"></div>
+      <div id="hist" translate="no" style="height:150px;overflow:auto;padding:8px 16px"></div>
       <div id="gal" style="display:flex;gap:6px;overflow-x:auto;padding:4px 16px"></div>
       <div class="compose"><textarea id="msg" placeholder="Type Message ..."></textarea><button class="send" onclick="send()">Send</button></div>
       <div class="bottom"><button class="iconbtn">📷</button><div><b>In</b><div class="count">169</div></div><div><b>Out</b><div class="count">265</div></div><button class="quit">Quit<br>Chat</button><div class="queue"><b>Messages in queue: 4</b><br>Conversation Started: 23 May 2026, 09:24 AM</div></div>
@@ -247,12 +248,12 @@ function panic(){alert('Prototype: conversation sent to Panic Room for admin rev
 function hold(){alert('Prototype: choose a hold duration (5 / 15 / 30 / 60 / 120 min) in the production system.');}
 </script>
 <script>
-let TOKEN=sessionStorage.getItem('t')||'';
+let DL=0;let TOKEN=sessionStorage.getItem('t')||'';
 let cur=null,sig='',D=null;const $=s=>document.querySelector(s),esc=escapeHtml,fmt=t=>new Date(t).toLocaleString('da-DK',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-const api=(p,b)=>fetch('/api/op'+p,{method:b?'POST':'GET',headers:{'x-op-token':TOKEN,'Content-Type':'application/json'},body:b&&JSON.stringify(b)}).then(r=>{if(r.status===401){sessionStorage.removeItem('t');location.reload()}return r.json()});
+const api=(p,b)=>fetch('/api/op'+p,{method:b?'POST':'GET',headers:{'x-op-token':TOKEN,'Content-Type':'application/json'},body:b&&JSON.stringify(b)}).then(r=>{if(r.status===401){if(TOKEN)sessionStorage.setItem('kicked','1');sessionStorage.removeItem('t');location.reload()}return r.json()});
 const refresh=()=>{sig='';return poll()};
 function renderLogs(box,obj){box.innerHTML=logCategories.map(c=>{const e=(obj||{})[c]||[];return '<div class="log-category'+(e.length?'':' empty')+'"><div class="cat-head"><span>'+c+'</span><span class="minus">−</span></div><div class="cat-body">'+e.map(x=>'<div class="log-entry">'+esc(x.text)+'<div class="meta">'+fmt(x.at)+'</div></div>').join('')+'</div></div>'}).join('')}
-async function poll(){const d=await api('/next?cur='+(cur||''));D=d;
+async function poll(){const d=await api('/next?cur='+(cur||''));DL=d.left!=null?Date.now()+d.left:0;delete d.left;D=d;
  const q=d.queue||0,s=JSON.stringify(d);if(s===sig)return;sig=s;
  if(d.none){cur=null;$('.queue').innerHTML='<b>Messages in queue: 0</b>';$('.customer-msg').textContent='Ingen ventende samtaler';$('#hist').innerHTML='';$('.logs').innerHTML='';$('.facts').innerHTML='';return}
  cur=d.id;renderGal();const c=d.conv,u=d.customer,today=new Date().toISOString().slice(0,10);
@@ -283,12 +284,13 @@ document.querySelectorAll('.nav a')[2].textContent='Admin';if(sessionStorage.get
 document.querySelectorAll('.nav a').forEach((a,i)=>a.onclick=async e=>{e.preventDefault();if(i===2)return location.href='/admin.html';if(i>0){const s=await api('/stats'+(i===3?'?me=1':''));alert(Object.entries(s).map(([k,v])=>k.replace('_',' ')+': '+v).join('\n'))}});
 $('#hist').addEventListener('click',async e=>{const i=e.target.dataset.del;if(i===undefined)return;e.preventDefault();if(!confirm('Fjern dette billede?'))return;await api('/delmsg',{id:cur,idx:+i});refresh()});
 let selImg='';
+function tick(){const el=document.getElementById('cd');if(!el)return;if(!DL||sessionStorage.getItem('role')==='admin'){el.hidden=true;return}const s=Math.max(0,Math.round((DL-Date.now())/1000));el.hidden=false;el.textContent='Svar inden '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' ellers logges du ud';el.style.background=s<45?'#b44':'#2474ac'}
 function renderGal(){const g=(D&&D.gallery)||[];$('#gal').innerHTML=g.length?g.map(x=>'<img data-g="'+x.file+'" src="/img/'+x.file+'" title="'+(x.label||'Photo')+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer;flex:none;border:3px solid '+(selImg===x.file?'#ff7eb6':'transparent')+'">').join(''):''}
 $('#gal').addEventListener('click',e=>{const f=e.target.dataset.g;if(!f)return;selImg=selImg===f?'':f;renderGal()});
-async function boot(){while(!TOKEN){const u=prompt('Username'),p=u===null?null:prompt('Password');if(p===null)return;
+async function boot(){if(!TOKEN&&sessionStorage.getItem('kicked')){sessionStorage.removeItem('kicked');alert('Du blev logget ud, fordi du ikke svarede inden for 3 minutter. Log ind igen.')}while(!TOKEN){const u=prompt('Username'),p=u===null?null:prompt('Password');if(p===null)return;
  const r=await fetch('/api/op/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
  if(r.ok){const jr=await r.json();TOKEN=jr.token;sessionStorage.setItem('t',TOKEN);sessionStorage.setItem('role',jr.role)}else alert(r.status===429?'For mange forsøg. Prøv senere.':'Wrong username or password')}
- poll();setInterval(poll,2500)}boot();
+ poll();setInterval(poll,2500);setInterval(tick,1000);tick()}boot();
 </script>
 </body>
 </html>

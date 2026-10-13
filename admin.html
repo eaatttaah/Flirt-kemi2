@@ -1,13 +1,14 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#404952;color:#f2f4f6;font:14px/1.5 Arial,sans-serif}main{max-width:820px;margin:0 auto;padding:20px}
 .card{background:#30383f;border-top:2px solid #2474ac;padding:16px;margin-bottom:18px}h2{margin:0 0 10px}button{border:0;border-radius:4px;background:#3394d5;color:#fff;padding:7px 12px;cursor:pointer}
-.red{background:#b44}input{background:#3a434b;border:1px solid #59636c;color:#fff;padding:8px;margin-right:6px}a{color:#7cc4ff}table{width:100%;border-collapse:collapse}td,th{padding:5px 8px;border-bottom:1px solid #48515a;text-align:left}h3{margin:14px 0 6px;font-size:14px}.m{padding:3px 8px;margin:3px 0;background:#3a434b;border-radius:6px}.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #48515a}</style></head><body><main>
+.red{background:#b44}input{background:#3a434b;border:1px solid #59636c;color:#fff;padding:8px;margin-right:6px}a{color:#7cc4ff}table{width:100%;border-collapse:collapse}td,th{padding:5px 8px;border-bottom:1px solid #48515a;text-align:left}h3{margin:14px 0 6px;font-size:14px}.m{padding:3px 8px;margin:3px 0;background:#3a434b;border-radius:6px}.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #48515a}</style><link rel="icon" href="/favicon.svg" type="image/svg+xml"></head><body><main>
 <p><a href="/operator.html">← Back to operator panel</a></p>
 <div class="card"><h2>Panic Room</h2><div id="panic">Loading…</div></div>
 <div class="card"><h2>Operator activity</h2>
 <p>From <input type="date" id="df"> To <input type="date" id="dt"> <select id="opf"><option value="">All operators</option></select> <button onclick="loadAct()">Show</button> <small id="ret"></small></p>
 <h3>Messages per operator</h3><div id="sumBox"></div><h3>Messages per day</h3><div id="dayBox"></div><h3>Message times (latest 200)</h3><div id="detBox" style="max-height:300px;overflow:auto"></div></div>
 <div class="card"><h2>Profiles</h2><p><a href="/profiler.html">Manage customer-visible profiles, photos and assigned operators →</a></p></div>
+<div class="card"><h2>Customers</h2><p><input id="cq" placeholder="Search name or e-mail"> <button onclick="loadCust()">Refresh</button></p><div id="custs" style="max-height:340px;overflow:auto"></div></div>
 <div class="card"><h2>Operators</h2><div id="ops"></div><p><input id="u" placeholder="username"><input id="p" type="password" placeholder="password (min 8)"><button onclick="addOp()">Add operator</button></p></div></main>
 <script>
 const T=sessionStorage.getItem('t');if(!T)location.href='/operator.html';
@@ -29,7 +30,14 @@ async function loadAct(){
  dayBox.innerHTML=tbl(['Date','Total','Per operator'],Object.keys(byDay).sort().reverse().map(k=>[k,Object.values(byDay[k]).reduce((x,y)=>x+y,0),Object.entries(byDay[k]).map(([o,n])=>esc(o)+': '+n).join(', ')]));
  detBox.innerHTML=tbl(['Date and time','Operator'],r.entries.slice(-200).reverse().map(([o,a])=>[fmt(a),esc(o)]))}
 async function rel(id,close){await api('/admin/release','POST',{id,close});load()}
+let CU=[];
+async function loadCust(){CU=await api('/admin/customers');drawCust()}
+function drawCust(){const q=(cq.value||'').toLowerCase();const r=CU.filter(c=>!q||(c.name+' '+c.email).toLowerCase().includes(q)).slice(0,100);
+ custs.innerHTML=r.length?'<table><tr><th>Name</th><th>E-mail</th><th>Credits</th><th>Msgs</th><th></th></tr>'+r.map(c=>'<tr><td>'+esc(c.name)+(c.blocked?' <small style="color:#f88">(blocked)</small>':'')+'</td><td>'+esc(c.email)+(c.verified?' ✓':'')+'</td><td>'+c.credits+'</td><td>'+c.msgs+'</td><td><button onclick="addCr(\''+c.id+'\')">± credits</button> <button class="red" onclick="blk(\''+c.id+'\','+!c.blocked+')">'+(c.blocked?'Unblock':'Block')+'</button></td></tr>').join('')+'</table>':'No customers.'}
+async function addCr(id){const v=prompt('Add (or subtract with minus) credits:','100');if(!v)return;const r=await api('/admin/customers/'+id+'/credits','POST',{delta:v});if(r&&r.error)return alert(r.error);loadCust()}
+async function blk(id,b){if(!confirm(b?'Block this customer from sending messages and logging in?':'Unblock?'))return;await api('/admin/customers/'+id+'/block','POST',{blocked:b});loadCust()}
+document.addEventListener('input',e=>{if(e.target.id==='cq')drawCust()});
 async function delOp(u){if(confirm('Delete '+u+'?')){await api('/admin/operators/'+encodeURIComponent(u),'DELETE');load()}}
 async function addOp(){const r=await api('/admin/operators','POST',{username:u.value,password:p.value});if(r.error)return alert(r.error);u.value=p.value='';load()}
-load();loadAct();setInterval(load,5000);
+load();loadCust();loadAct();setInterval(load,5000);
 </script></body></html>

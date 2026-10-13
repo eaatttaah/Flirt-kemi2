@@ -56,6 +56,14 @@ app.get('/hero.jpg', (req, res) => { res.set('Cache-Control', 'public, max-age=8
 app.get(['/', ...PAGES.map(p => '/' + p + '.html')], (req, res) =>
   res.sendFile(path.join(PUB, req.path === '/' ? 'index.html' : req.path.slice(1))));
 
+
+// ---- Offentlige data, ordrehistorik, favicon ----
+app.get('/api/public/profiles', (_, res) => { res.set('Cache-Control', 'public, max-age=60'); res.json(Object.entries(db.profiles).map(([id, p]) => { const o = pubProfile(id, p); return { name: o.name, tagline: o.tagline, avatar: o.avatar, label: o.label }; })); });
+app.get('/api/orders/:cid', (req, res) => { const c = cust(req, res); if (!c) return;
+  res.json(Object.values(db.orders).filter(o => o.customerId === req.params.cid && o.status === 'paid').map(o => ({ at: o.paidAt || o.at || '', dkk: o.amount / 100, credits: o.credits })).sort((a, b) => b.at.localeCompare(a.at))); });
+const FAV = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0508a"/><stop offset="1" stop-color="#9b5de5"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#g)"/><path d="M32 47S15 37 15 26a9 9 0 0117-4.5A9 9 0 0149 26c0 11-17 21-17 21z" fill="#fff"/></svg>';
+app.get('/favicon.svg', (_, res) => { res.set('Cache-Control', 'public, max-age=86400'); res.type('image/svg+xml').send(FAV); });
+app.get('/favicon.ico', (_, res) => res.redirect('/favicon.svg'));
 app.get('/api/packages', (_, res) => res.json(PACKAGES));
 
 app.post('/api/checkout', async (req, res) => {
@@ -71,7 +79,7 @@ app.post('/api/checkout', async (req, res) => {
     db.consents.push({ customerId, orderId, version: CONSENT_VERSION, adult: true, fictional: true, data: true,
       sensitive: !!consent.sensitive, at: new Date().toISOString(), ip: req.ip, ua: req.get('user-agent') });
     Object.assign(customer(customerId), { consented: true, sensitiveConsent: customer(customerId).sensitiveConsent || !!consent.sensitive });
-    db.orders[orderId] = { customerId, amount, credits: pkg.credits, status: 'pending' };
+    db.orders[orderId] = { customerId, amount, credits: pkg.credits, status: 'pending', at: new Date().toISOString() };
     save();
 
     if (DEMO) return res.json({ url: '/demo-pay.html?o=' + orderId });
@@ -91,7 +99,7 @@ db.convs ||= {};
 const now = () => Date.now(), iso = () => new Date().toISOString(), rid = n => crypto.randomBytes(n).toString('hex');
 const conv = (cid, pid) => (db.convs[cid + '~' + pid] ||= { cid, pid, msgs: [], notes: [], logs: { man: {}, woman: {} }, status: 'open', holdUntil: 0, assignee: '', started: iso() });
 const pending = c => c.status === 'open' && c.holdUntil < now() && c.msgs.length && c.msgs.at(-1).from === 'c';
-function fulfil(o) { if (o.status === 'paid') return; o.status = 'paid'; customer(o.customerId).credits += o.credits; save(); }
+function fulfil(o) { if (o.status === 'paid') return; o.status = 'paid'; o.paidAt = new Date().toISOString(); customer(o.customerId).credits += o.credits; save(); }
 
 // ---------- Profiler, uploads og migrering ----------
 db.profiles ||= {}; db.uploads ||= {};
@@ -104,7 +112,8 @@ const convKeys = cid => Object.keys(db.convs).filter(k => db.convs[k].cid === ci
 function dropFile(f) { if (!f) return; delete db.uploads[f]; try { fs.unlinkSync(path.join(UP, f)); } catch {} }
 // Operatører med begrænset adgang ser kun de profiler, de er tildelt (ingen tildelte operatører = alle operatører)
 const canSee = (s, c) => { const p = db.profiles[c.pid] || {}; return s.role === 'admin' || !(p.operators || []).length || p.operators.includes(s.username); };
-const cv = (req, id) => { const c = db.convs[id]; return c && canSee(req.op, c) ? c : null; };
+const IDLE_MS = Number(process.env.OP_IDLE_MS) || 180000;   // operatøren skal svare inden 3 min, ellers logges vedkommende ud
+const cv = (req, id) => { const c = db.convs[id]; return c && canSee(req.op, c) && (!c.claim || c.claim.by === req.op.username || req.op.role === 'admin') ? c : null; };
 const pubProfile = (id, p) => ({ id, name: p.name, tagline: p.tagline || '', bio: p.bio || '', avatar: p.avatar || '',
   label: p.avatar && p.avatarSource === 'illustration' ? 'Illustration' : '' });
 
@@ -171,6 +180,7 @@ app.post('/api/login', (req, res) => {
   if (tooMany(k1) || tooMany(k2)) return res.status(429).json({ error: 'For mange forsøg. Prøv igen om lidt.' });
   const hit = Object.entries(db.customers).find(([, c]) => c.email === email);
   if (!hit || !pwOk(hit[1], req.body.password)) { bump(k1); bump(k2); return res.status(401).json({ error: 'Forkert e-mail eller adgangskode.' }); }
+  if (hit[1].blocked) return res.status(403).json({ error: 'Kontoen er spærret. Kontakt os, hvis du mener, det er en fejl.' });
   res.json({ id: hit[0] });
 });
 
@@ -255,7 +265,8 @@ app.get('/api/convs/:cid', (req, res) => {
   const profiles = Object.entries(db.profiles).map(([pid, p]) => pubProfile(pid, p));
   const convs = convKeys(id).map(k => db.convs[k]).filter(v => v.msgs.length && db.profiles[v.pid]).map(v => {
     const m = v.msgs.at(-1), p = db.profiles[v.pid];
-    return { pid: v.pid, name: p.name, tagline: p.tagline || '', avatar: p.avatar || '', last: m.text || (m.img ? '📷 Billede' : ''), from: m.from, at: m.at, count: v.msgs.length };
+    const seen = (c.seen || {})[v.pid] || '', unread = v.msgs.filter(x => x.from === 'm' && x.at > seen).length;
+    return { pid: v.pid, unread, name: p.name, tagline: p.tagline || '', avatar: p.avatar || '', last: m.text || (m.img ? '📷 Billede' : ''), from: m.from, at: m.at, count: v.msgs.length };
   }).sort((a, b) => b.at.localeCompare(a.at));
   res.json({ me: meOut(id, c), profiles, convs });
 });
@@ -263,6 +274,8 @@ app.get('/api/chat/:cid/:pid', (req, res) => {
   const c = cust(req, res); if (!c) return; const p = db.profiles[req.params.pid];
   if (!p) return res.status(404).json({ error: 'Ukendt profil' });
   const v = db.convs[req.params.cid + '~' + req.params.pid];
+  const lastO = v ? (v.msgs.filter(x => x.from === 'm').at(-1) || {}).at : null;
+  if (lastO && ((c.seen ||= {})[req.params.pid] || '') < lastO) { c.seen[req.params.pid] = lastO; save(); }
   res.json({ me: meOut(req.params.cid, c), profile: pubProfile(req.params.pid, p), msgs: v ? v.msgs.map(pubMsg) : [] });
 });
 app.post('/api/chat/:cid/:pid', (req, res) => {
@@ -271,6 +284,7 @@ app.post('/api/chat/:cid/:pid', (req, res) => {
   const text = cl(b.text, 1000), img = String(b.img || '');
   if (!text && !img) return res.status(400).json({ error: 'Skriv en besked først.' });
   if (img) { const u = db.uploads[img]; if (!u || u.cid !== id || u.kind !== 'chat') return res.status(400).json({ error: 'Ugyldigt billede.' }); }
+  if (c.blocked) return res.status(403).json({ error: 'Din konto er spærret.' });
   if (!c.consented) return res.status(403).json({ error: 'Giv samtykke under "Køb kreditter" først.' });
   if (c.credits < COST) return res.status(402).json({ error: 'Ikke nok kreditter.' });
   const v = conv(id, pid); c.credits -= COST; if (v.status === 'closed') v.status = 'open';
@@ -294,15 +308,34 @@ op.post('/login', (req, res) => {
   const token = rid(24); sessions.set(token, { username: u, role: o.role }); res.json({ token, role: o.role });
 });
 op.use((req, res, next) => { const s = sessions.get(req.get('x-op-token')); if (!s) return res.sendStatus(401); req.op = s; next(); });
+setInterval(() => {                                  // frigiv samtaler og log inaktive operatører ud
+  let ch = false;
+  for (const c of Object.values(db.convs)) {
+    if (!c.claim) continue;
+    if (!pending(c)) { delete c.claim; ch = true; continue; }
+    if (now() - c.claim.since > IDLE_MS) {
+      const u = c.claim.by; delete c.claim; ch = true;
+      if (db.operators[u] && db.operators[u].role !== 'admin') for (const [t, s] of sessions) if (s.username === u) sessions.delete(t);
+    }
+  }
+  if (ch) save();
+}, Math.min(10000, IDLE_MS / 3)).unref();
 app.use('/api/op', op);
 op.get('/next', (req, res) => {
-  const queue = Object.entries(db.convs).filter(([, c]) => pending(c) && canSee(req.op, c));
+  const me = req.op.username, free = c => (!c.claim || c.claim.by === me) && (!c.resv || c.resv.by === me || c.resv.until < now());   // kun én operatør pr. samtale
+  const queue = Object.entries(db.convs).filter(([, c]) => pending(c) && canSee(req.op, c) && free(c));
   const cur = cv(req, req.query.cur);
   let id = cur && cur.status === 'open' && cur.holdUntil < now() ? req.query.cur : null;
   if (!id && queue.length) id = queue.sort((a, b) => a[1].msgs.at(-1).at.localeCompare(b[1].msgs.at(-1).at))[0][0];
   if (!id) return res.json({ none: true, queue: 0 });
   const c = db.convs[id], u = db.customers[c.cid]; if (!u) return res.json({ none: true, queue: 0 });
-  res.json({ id, queue: queue.length, profile: (db.profiles[c.pid] || {}).name || '', gallery: ((db.profiles[c.pid] || {}).gallery || []).map(g => ({ file: g.file, label: g.source === 'illustration' ? 'Illustration' : '' })), conv: c, customer: { about: u.about || '', avatar: u.avatar || '', name: u.name, first: u.first, last: u.last, age: u.age, city: u.city, likes: u.likes, seeking: u.sensitiveConsent ? u.seeking : '', credits: u.credits, sensitive: u.sensitiveConsent },
+  let left = null;
+  if (pending(c)) {                                   // ny kundebesked: samtalen låses til denne operatør
+    const lastC = c.msgs.at(-1).at;
+    if (!c.claim || c.claim.by !== me || c.claim.msgAt !== lastC) c.claim = { by: me, since: now(), msgAt: lastC };
+    left = Math.max(0, c.claim.since + IDLE_MS - now());
+  } else if (c.claim && c.claim.by === me) delete c.claim;
+  res.json({ id, left: left, queue: queue.length, profile: (db.profiles[c.pid] || {}).name || '', gallery: ((db.profiles[c.pid] || {}).gallery || []).map(g => ({ file: g.file, label: g.source === 'illustration' ? 'Illustration' : '' })), conv: c, customer: { about: u.about || '', avatar: u.avatar || '', name: u.name, first: u.first, last: u.last, age: u.age, city: u.city, likes: u.likes, seeking: u.sensitiveConsent ? u.seeking : '', credits: u.credits, sensitive: u.sensitiveConsent },
     inCount: c.msgs.filter(m => m.from === 'c').length, outCount: c.msgs.filter(m => m.from === 'm').length });
 });
 op.post('/send', (req, res) => {
@@ -310,6 +343,7 @@ op.post('/send', (req, res) => {
   if (!c || (!t && !img)) return res.sendStatus(400);
   let label = '';
   if (img) { const u = db.uploads[img]; if (!u || u.kind !== 'gallery' || u.pid !== c.pid) return res.status(400).json({ error: 'Billedet hører ikke til denne profil.' }); label = u.source === 'illustration' ? 'Illustration' : ''; }
+  delete c.claim; c.resv = { by: req.op.username, until: now() + IDLE_MS };   // samme operatør fortsætter samtalen i 3 min
   c.msgs.push({ from: 'm', text: t, img, label, by: req.op.username, at: iso() }); (db.opLog ||= []).push({ op: req.op.username, at: iso() }); save(); res.json({ ok: true });
 });
 op.post('/note', (req, res) => {
@@ -330,6 +364,7 @@ op.post('/log', (req, res) => {
 op.post('/status', (req, res) => {
   const c = cv(req, req.body.id); if (!c) return res.sendStatus(404);
   const { status, minutes, assignee } = req.body;
+  if (['hold', 'panic', 'closed'].includes(status)) { delete c.claim; delete c.resv; }
   if (status === 'hold') c.holdUntil = now() + (Number(minutes) || 15) * 60000;
   else if (status === 'panic' || status === 'closed') c.status = status;
   else if (status === 'assign') c.assignee = assignee ? req.op.username : '';
@@ -385,6 +420,14 @@ const adminProfile = (id, p) => ({ id, name: p.name, tagline: p.tagline || '', b
   gallery: p.gallery || [], operators: p.operators || [] });
 const profileFields = b => ({ name: cl(b.name, 30), tagline: cl(b.tagline, 80), bio: cl(b.bio, 600),
   operators: [...new Set((Array.isArray(b.operators) ? b.operators : []).map(String).filter(u => opNames().includes(u)))] });
+
+op.get('/admin/customers', admin, (_, res) => res.json(Object.entries(db.customers).map(([id, c]) => ({ id, name: c.name || '', email: c.email || '', verified: !!c.emailVerified, credits: c.credits || 0,
+  blocked: !!c.blocked, msgs: convKeys(id).reduce((n, k) => n + db.convs[k].msgs.filter(m => m.from === 'c').length, 0) })).sort((a, b) => b.msgs - a.msgs)));
+op.post('/admin/customers/:id/credits', admin, (req, res) => { const c = db.customers[req.params.id], d = parseInt(req.body.delta, 10);
+  if (!c || !Number.isFinite(d) || Math.abs(d) > 100000) return res.sendStatus(400);
+  c.credits = Math.max(0, (c.credits || 0) + d); save(); res.json({ ok: true, credits: c.credits }); });
+op.post('/admin/customers/:id/block', admin, (req, res) => { const c = db.customers[req.params.id]; if (!c) return res.sendStatus(404);
+  c.blocked = !!req.body.blocked; save(); res.json({ ok: true }); });
 op.get('/admin/profiles', admin, (_, res) => res.json({ profiles: Object.entries(db.profiles).map(([id, p]) => adminProfile(id, p)), operators: opNames() }));
 op.post('/admin/profiles', admin, (req, res) => {
   const f = profileFields(req.body || {}); if (f.name.length < 2) return res.status(400).json({ error: 'Name: min 2 characters.' });
@@ -423,4 +466,5 @@ op.delete('/admin/profiles/:id', admin, (req, res) => {
   dropFile(p.avatar); (p.gallery || []).forEach(g => dropFile(g.file)); delete db.profiles[req.params.id]; save(); res.json({ ok: true });
 });
 
+app.use((req, res) => { if (/^\/(api|img)\//.test(req.path)) return res.status(404).json({ error: 'Ikke fundet' }); res.status(404).sendFile(path.join(PUB, '404.html')); });
 app.listen(PORT, () => console.log('http://localhost:' + PORT));
